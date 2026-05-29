@@ -84,7 +84,7 @@ class _HomeShellState extends State<HomeShell> {
     (icon: Icons.menu_book_rounded, label: 'ሺዋን'),
     (icon: Icons.school_rounded, label: 'ምህሮ'),
     (icon: Icons.music_note_rounded, label: 'መዛሙር'),
-    (icon: Icons.star_rounded, label: 'ሓፍዘ'),
+    (icon: Icons.star_rounded, label: 'Favorites'),
   ];
 
   void _openItem(Item it) {
@@ -255,7 +255,7 @@ class _HomeShellState extends State<HomeShell> {
       (tab: 1, k: 'Prayers', t: 'ሺዋን', d: 'Daily prayers, Creed, Rosary, Divine Mercy, Way of the Cross & more'),
       (tab: 2, k: 'Catechism', t: 'ምህሮ ክርስቶስ', d: '${widget.data.quiz.length} questions across ${widget.data.catechism.length} topics — for First Communion'),
       (tab: 3, k: 'Hymns', t: 'መዛሙር ብሊነው', d: '${widget.data.hymns.length} Blin hymns & songs'),
-      (tab: -1, k: 'Study', t: 'ፈተና ምህሮ', d: 'Flashcard quiz mode for children'),
+      (tab: -1, k: 'Quiz', t: 'ፈተና', d: 'Flashcard quiz mode for children'),
     ];
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 30),
@@ -486,7 +486,7 @@ class _HomeShellState extends State<HomeShell> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
           children: [
-            _viewTitle('ሓፍዘ ★', 'Favorites'),
+            _viewTitle('Favorites ★', 'Favorites'),
             const Ornament(glyph: '★'),
             if (favs.isEmpty)
               Padding(
@@ -495,8 +495,8 @@ class _HomeShellState extends State<HomeShell> {
                   const Icon(Icons.star_border_rounded,
                       size: 54, color: AppColors.line),
                   const SizedBox(height: 12),
-                  Text('ናድካ ሓፍዘ እላ።',
-                      style: AppTheme.geezSerif(size: 18)),
+                  Text('No favorites yet.',
+                      style: AppTheme.latin(size: 18)),
                   const SizedBox(height: 6),
                   Text(
                       'Tap the star ☆ while reading to save a prayer or hymn here.',
