@@ -55,7 +55,7 @@ class _QuizScreenState extends State<QuizScreen> {
             Text('${widget.data.quiz.length} questions',
                 style: AppTheme.latin(size: 15)),
             const SizedBox(height: 8),
-            Text('ፈተናኹ ጅብሮ?',
+            Text('ፈተና',
                 textAlign: TextAlign.center,
                 style: AppTheme.geezSerif(size: 21, w: FontWeight.w700)),
             const SizedBox(height: 6),
@@ -72,7 +72,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     backgroundColor: AppColors.wine,
                     padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () => _start(widget.data.quiz),
-                child: Text('ኩልሲ ጅብሪ · All topics',
+                child: Text('ናውክ· All topics',
                     style: AppTheme.geezSerif(
                         size: 16,
                         w: FontWeight.w700,
@@ -175,7 +175,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         backgroundColor: AppColors.wine,
                         padding: const EdgeInsets.symmetric(vertical: 14)),
                     onPressed: () => setState(() => revealed = true),
-                    child: Text('ጃዋብ አር · Reveal',
+                    child: Text('ቀልዒ · Reveal',
                         style: AppTheme.geezSerif(
                             size: 16,
                             w: FontWeight.w700,
@@ -198,7 +198,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         });
                       }
                     },
-                    child: Text(last ? 'ተመመ · Finish' : 'ኰዶ → · Next',
+                    child: Text(last ? 'ተመሙኽ · Finish' : 'ኰዶ → · Next',
                         style: AppTheme.geezSerif(
                             size: 16,
                             w: FontWeight.w700,
@@ -213,7 +213,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     padding: const EdgeInsets.symmetric(
                         vertical: 14, horizontal: 18)),
                 onPressed: _exit,
-                child: Text('ኡሪ',
+                child: Text('ደምቢራ',
                     style: AppTheme.geezSerif(
                         size: 16, w: FontWeight.w700, color: AppColors.wine)),
               ),
