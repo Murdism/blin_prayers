@@ -445,7 +445,7 @@ class _HomeShellState extends State<HomeShell> {
             },
             icon: const Icon(Icons.school_rounded,
                 color: Color(0xFFF7ECD6)),
-            label: Text('ፈተና ጅብሪ · Start Quiz',
+            label: Text('ፈተና ተርሲ · Start Quiz',
                 style: AppTheme.geezSerif(
                     size: 16,
                     w: FontWeight.w700,
