@@ -23,4 +23,19 @@ void main() {
       AppPalette.night.background,
     );
   });
+
+  testWidgets('Marian litany separates invocations from response words',
+      (tester) async {
+    const phrase = 'ዎ ይና አደራ ረሓሚና';
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.theme(dark: false),
+      home: const Scaffold(
+        body: PrayerText('$phrase $phrase'),
+      ),
+    ));
+
+    expect(find.text('ዎ ይና አደራ'), findsOneWidget);
+    expect(find.text('ረሓሚና'), findsOneWidget);
+    expect(find.text(phrase), findsNothing);
+  });
 }

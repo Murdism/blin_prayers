@@ -187,20 +187,35 @@ class _PrayerTextState extends State<PrayerText> {
       final rm2 = hasRoleMarker ? null : _responseRe.firstMatch(line);
       if (rm2 != null) {
         flush();
-        final response = line.substring(rm2.start);
-        final invocation = line.substring(0, rm2.start).trimRight();
-        // Doubled lines (e.g. "ዎ ይና አደራ ረሓሚና ዎ ይና አደራ ረሓሚና") keep inline bold.
-        final isDoubled = invocation.contains(rm2.group(1)!);
-        if (!isDoubled && invocation.isNotEmpty) {
+        final responseWord = rm2.group(1)!;
+        final firstResponseEnd =
+            line.indexOf(responseWord) + responseWord.length;
+        final firstPhrase = line.substring(0, firstResponseEnd).trim();
+        final repeatedPhrase = line.substring(firstResponseEnd).trim();
+        final isDoubled = repeatedPhrase == firstPhrase;
+        final invocation = isDoubled
+            ? firstPhrase
+                .substring(0, firstPhrase.length - responseWord.length)
+                .trimRight()
+            : line.substring(0, rm2.start).trimRight();
+        final response = isDoubled ? responseWord : line.substring(rm2.start);
+        if (invocation.isNotEmpty) {
           result.add(Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: Text(invocation, style: base)),
+              Expanded(flex: 3, child: Text(invocation, style: base)),
               const SizedBox(width: 20),
-              Text(response,
+              Flexible(
+                flex: 2,
+                child: Text(
+                  response,
+                  textAlign: TextAlign.end,
                   style: base.copyWith(
-                      color: context.palette.primarySoft,
-                      fontWeight: FontWeight.w700)),
+                    color: context.palette.primarySoft,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ],
           ));
         } else {
@@ -831,7 +846,6 @@ class _HymnBodyState extends State<HymnBody> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (item.needsReview) _reviewBadge(s),
           if (item.refrain.isNotEmpty) ...[
             _refrainBlock(item.refrain, base, s),
           ],
@@ -843,26 +857,6 @@ class _HymnBodyState extends State<HymnBody> {
             Text(item.body, style: base),
         ],
       ),
-    );
-  }
-
-  Widget _reviewBadge(double s) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
-      decoration: BoxDecoration(
-        color: context.palette.surfaceMuted,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: context.palette.goldDecorative, width: 1),
-      ),
-      child: Row(children: [
-        Icon(Icons.warning_amber_rounded,
-            size: 14, color: context.palette.goldText),
-        const SizedBox(width: 7),
-        Text('Verse splits need review',
-            style: AppTheme.latin(
-                size: 12.5 * s, color: context.palette.goldText)),
-      ]),
     );
   }
 

@@ -192,6 +192,15 @@ class RosaryCollectionScreen extends StatelessWidget {
         .itemsInGroup('rosary')
         .where((item) => _rosarySectionIds.contains(item.id))
         .toList();
+    final opening = items.where((item) => item.id == 'p_rosary_open').toList();
+    final mysteries = items
+        .where((item) => item.id.startsWith('p_rosary_'))
+        .where((item) => item.id != 'p_rosary_open')
+        .toList();
+    final conclusion = items
+        .where(
+            (item) => item.id == 'p_hail_holy_queen' || item.id == 'p_litany')
+        .toList();
     return AnimatedBuilder(
       animation: store,
       builder: (context, _) => Scaffold(
@@ -228,12 +237,33 @@ class RosaryCollectionScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     PrayerGroupPanel(
-                      title: 'Rosary',
-                      subtitle: 'Complete sequence',
+                      title: '1. Begin',
+                      subtitle: 'Opening prayers',
+                      description: 'Opening prayers of the Rosary.',
+                      icon: Icons.play_circle_outline_rounded,
+                      items: opening,
+                      isFavorite: store.isFav,
+                      onOpen: (item) => _open(context, item),
+                    ),
+                    const SizedBox(height: 14),
+                    PrayerGroupPanel(
+                      title: '2. Mysteries',
+                      subtitle: 'Choose one set',
                       description:
-                          'Opening prayers, four mystery sets, and the concluding Marian prayers.',
+                          'Choose the mystery set appointed for the day.',
                       icon: Icons.blur_circular_rounded,
-                      items: items,
+                      items: mysteries,
+                      isFavorite: store.isFav,
+                      onOpen: (item) => _open(context, item),
+                    ),
+                    const SizedBox(height: 14),
+                    PrayerGroupPanel(
+                      title: '3. Conclude',
+                      subtitle: 'Final prayers',
+                      description:
+                          'Finish with Hail Holy Queen and the Marian litany.',
+                      icon: Icons.local_florist_outlined,
+                      items: conclusion,
                       isFavorite: store.isFav,
                       onOpen: (item) => _open(context, item),
                     ),

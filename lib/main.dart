@@ -119,6 +119,14 @@ class _HomeShellState extends State<HomeShell> {
     ));
   }
 
+  void _openQuickPrayer(Item item) {
+    if (item.group == 'rosary') {
+      _openGroup('rosary');
+      return;
+    }
+    _openItem(item);
+  }
+
   void _openGroup(String groupId) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => PrayerCollectionScreen(
@@ -175,22 +183,13 @@ class _HomeShellState extends State<HomeShell> {
         ),
         const SizedBox(width: 11),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(widget.data.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.geezSerif(
-                      size: 18,
-                      w: FontWeight.w700,
-                      color: const Color(0xFFF7ECD6))),
-              Text(widget.data.source,
-                  style: AppTheme.latin(
-                      size: 12.5, color: const Color(0xCCF7ECD6))),
-            ],
-          ),
+          child: Text(widget.data.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.geezSerif(
+                  size: 18,
+                  w: FontWeight.w700,
+                  color: const Color(0xFFF7ECD6))),
         ),
         IconButton(
           tooltip: 'ጠፍሕ · Search',
@@ -364,12 +363,16 @@ class _HomeShellState extends State<HomeShell> {
               physics: const NeverScrollableScrollPhysics(),
               itemBuilder: (context, index) {
                 final item = quickItems[index];
+                final isRosary = item.group == 'rosary';
+                final rosaryMeta = widget.data.groupMeta['rosary'];
                 return TileCard(
-                  kicker: item.groupEn,
-                  title: item.title,
-                  desc: item.sub,
+                  kicker: isRosary ? rosaryMeta!.en : item.groupEn,
+                  title: isRosary ? rosaryMeta!.title : item.title,
+                  desc: isRosary
+                      ? 'Rosary: opening, mysteries & litany'
+                      : item.sub,
                   icon: _quickIcon(item.group),
-                  onTap: () => _openItem(item),
+                  onTap: () => _openQuickPrayer(item),
                 );
               },
             );
@@ -413,24 +416,13 @@ class _HomeShellState extends State<HomeShell> {
             ),
         ],
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _openQuiz,
-                icon: const Icon(Icons.psychology_alt_rounded),
-                label: const Text('ፈተና · Quiz'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _openSources,
-                icon: const Icon(Icons.info_outline_rounded),
-                label: const Text('ምንጪታት · Sources'),
-              ),
-            ),
-          ],
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _openQuiz,
+            icon: const Icon(Icons.psychology_alt_rounded),
+            label: const Text('ፈተና · Quiz'),
+          ),
         ),
       ],
     );
@@ -652,12 +644,6 @@ class _HomeShellState extends State<HomeShell> {
       ),
       child: Stack(children: [
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(widget.data.source.toUpperCase(),
-              style: AppTheme.latin(
-                  size: 13,
-                  w: FontWeight.w600,
-                  color: const Color(0xBFF7ECD6))),
-          const SizedBox(height: 6),
           Text(widget.data.title,
               style: AppTheme.geezSerif(
                   size: 30,
@@ -1136,7 +1122,6 @@ class _HomeShellState extends State<HomeShell> {
                 const SizedBox(height: 4),
                 Text(
                     'Blin (ብሊን) prayers, hymns and catechism in Ge\u2019ez script, '
-                    'for the faithful of the ${widget.data.source}. '
                     'Works fully offline.',
                     style: AppTheme.latin(size: 15, style: FontStyle.normal)),
                 const SizedBox(height: 8),

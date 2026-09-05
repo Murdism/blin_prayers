@@ -45,7 +45,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _scrollController = ScrollController(
       initialScrollOffset: widget.store.readingOffset(item.id),
     )..addListener(_schedulePositionSave);
-    widget.store.recordOpened(item.id);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.store.recordOpened(item.id);
+    });
     if (_highlightQuery.isNotEmpty &&
         widget.store.readingOffset(item.id) == 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSearchHit());
@@ -309,7 +311,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         _wayProgressCard(station, sequenceIndex),
         const SizedBox(height: 14),
         if (visual != null) ...[
-          _wayHeroImage(visual, station, scale),
+          _wayHeroImage(visual, station),
           const SizedBox(height: 16),
         ],
         Container(
@@ -452,132 +454,114 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 
-  Widget _wayHeroImage(ContentVisual visual, int? station, double scale) {
+  Widget _wayHeroImage(ContentVisual visual, int? station) {
     final label = visual.alt.trim().isNotEmpty ? visual.alt : item.title;
-    final details = [
-      if (visual.caption.trim().isNotEmpty) visual.caption.trim(),
-      if (visual.credit.trim().isNotEmpty) visual.credit.trim(),
-    ].join(' · ');
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Semantics(
-          button: true,
-          image: true,
-          label: '$label. Open full-screen image.',
-          child: Material(
-            color: const Color(0xFF2B1B18),
-            borderRadius: BorderRadius.circular(22),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: () => _openVisual(visual, label),
-              child: Stack(
-                alignment: Alignment.bottomLeft,
-                children: [
-                  ConstrainedBox(
-                    constraints:
-                        const BoxConstraints(minHeight: 300, maxHeight: 560),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Image.asset(
-                        visual.asset,
-                        fit: BoxFit.contain,
-                        excludeFromSemantics: true,
-                        errorBuilder: (_, __, ___) => const SizedBox(
-                          height: 300,
-                          child: Center(
-                            child: Icon(Icons.image_not_supported_outlined,
-                                color: Color(0xFFE7CA8B), size: 34),
-                          ),
-                        ),
+    return Semantics(
+      button: true,
+      image: true,
+      label: '$label. Open full-screen image.',
+      child: Material(
+        color: const Color(0xFF2B1B18),
+        borderRadius: BorderRadius.circular(22),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _openVisual(visual, label),
+          child: Stack(
+            alignment: Alignment.bottomLeft,
+            children: [
+              ConstrainedBox(
+                constraints:
+                    const BoxConstraints(minHeight: 300, maxHeight: 560),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Image.asset(
+                    visual.asset,
+                    fit: BoxFit.contain,
+                    excludeFromSemantics: true,
+                    errorBuilder: (_, __, ___) => const SizedBox(
+                      height: 300,
+                      child: Center(
+                        child: Icon(Icons.image_not_supported_outlined,
+                            color: Color(0xFFE7CA8B), size: 34),
                       ),
                     ),
                   ),
-                  const Positioned.fill(
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.center,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0x00000000), Color(0xB0000000)],
-                            stops: [0.62, 1],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 14,
-                    right: 14,
-                    bottom: 14,
-                    child: Row(
-                      children: [
-                        if (station != null)
-                          Container(
-                            width: 44,
-                            height: 44,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: context.palette.primaryDark,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: const Color(0xFFE7CA8B), width: 1.5),
-                            ),
-                            child: Text(
-                              '$station',
-                              style: AppTheme.latin(
-                                size: 20,
-                                w: FontWeight.w700,
-                                color: Colors.white,
-                                style: FontStyle.normal,
-                              ),
-                            ),
-                          ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 7),
-                          decoration: BoxDecoration(
-                            color: const Color(0xB0000000),
-                            borderRadius: BorderRadius.circular(99),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.zoom_out_map_rounded,
-                                  size: 16, color: Colors.white),
-                              const SizedBox(width: 6),
-                              Text(
-                                'View image',
-                                style: AppTheme.latin(
-                                  size: 12.5,
-                                  w: FontWeight.w700,
-                                  color: Colors.white,
-                                  style: FontStyle.normal,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+              const Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.center,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0x00000000), Color(0xB0000000)],
+                        stops: [0.62, 1],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 14,
+                right: 14,
+                bottom: 14,
+                child: Row(
+                  children: [
+                    if (station != null)
+                      Container(
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: context.palette.primaryDark,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: const Color(0xFFE7CA8B), width: 1.5),
+                        ),
+                        child: Text(
+                          '$station',
+                          style: AppTheme.latin(
+                            size: 20,
+                            w: FontWeight.w700,
+                            color: Colors.white,
+                            style: FontStyle.normal,
+                          ),
+                        ),
+                      ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: const Color(0xB0000000),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.zoom_out_map_rounded,
+                              size: 16, color: Colors.white),
+                          const SizedBox(width: 6),
+                          Text(
+                            'View image',
+                            style: AppTheme.latin(
+                              size: 12.5,
+                              w: FontWeight.w700,
+                              color: Colors.white,
+                              style: FontStyle.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
-        if (details.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-            child: Text(
-              details,
-              textAlign: TextAlign.center,
-              style: AppTheme.latin(size: 12.5 * scale),
-            ),
-          ),
-      ],
+      ),
     );
   }
 
@@ -1382,7 +1366,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final label = visual.alt.trim().isNotEmpty ? visual.alt : item.title;
     final details = [
       if (visual.caption.trim().isNotEmpty) visual.caption.trim(),
-      if (visual.credit.trim().isNotEmpty) visual.credit.trim(),
     ].join(' · ');
 
     return Padding(

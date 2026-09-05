@@ -172,6 +172,22 @@ class AppData {
             ),
             '',
           )
+          .replaceAll(' supplied in a one-page text-native PDF', '')
+          .replaceAll(
+            "with the booklet's repeated responses written out for reading",
+            'with every repeated response written out for reading',
+          )
+          .replaceAll(
+            'The English title is an editorial rendering of the Blin title; '
+                'no verified full English translation is available.',
+            '',
+          )
+          .replaceAll(
+            'The complete Chaplet of Divine Mercy and litany, with every '
+                'repeated response written out for reading.',
+            'The Chaplet of Divine Mercy, the Three O’clock prayer, litany, '
+                'and concluding invocations.',
+          )
           .trim();
     }
 

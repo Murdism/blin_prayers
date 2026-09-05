@@ -1,7 +1,7 @@
 # ክርስቶስር ክኒ ግናቲትድ — Blin Prayer App
 
 A complete offline **Flutter** app of Blin (ብሊን) prayers, hymns, and catechism in
-Ge'ez script, for the faithful of the **Catholic Eparchy of Keren**.
+Ge'ez script, designed for clear and focused prayer reading.
 
 Current application release: **2.0.0+2** — the first major reader and
 navigation redesign.
@@ -15,7 +15,7 @@ navigation redesign.
 - ✝️ **Catechism** — 11 topics, 65 question-and-answer pairs (for First Communion)
 - 🎓 **Quiz mode** — shuffle-able flashcards, all topics or one at a time
 - 🎵 **40 Blin hymns**
-- 🖼️ Source-linked devotional artwork with offline viewing and tap-to-zoom
+- 🖼️ Devotional artwork with offline viewing and tap-to-zoom
 - ✨ Dedicated four-stage Divine Mercy and Way of the Cross journeys, structured
   prayer cards, Rosary mystery steps, and catechism Q&A panels
 - ⭐ Favorites, recent prayers, reading-position recovery, filtered full-text

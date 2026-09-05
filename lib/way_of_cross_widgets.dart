@@ -234,7 +234,7 @@ class _JourneyHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 13),
                 Text(
-                  'Follow the complete source sequence with its prayers, responses, Scripture, and sacred images.',
+                  'Follow the complete sequence with its prayers, responses, Scripture, and sacred images.',
                   style: AppTheme.latin(
                     size: 15.5,
                     color: const Color(0xFFE9D9BA),

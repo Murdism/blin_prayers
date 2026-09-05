@@ -22,7 +22,7 @@ const divineMercyStages = <DivineMercyStageDefinition>[
   DivineMercyStageDefinition(
     eyebrow: 'CHAPLET',
     title: 'How to pray',
-    description: 'Ten source steps with every prayer shown in full.',
+    description: 'Ten prayer steps with every prayer shown in full.',
     icon: Icons.blur_circular_rounded,
   ),
   DivineMercyStageDefinition(
@@ -876,7 +876,7 @@ class _ThreeOClockPrayer extends StatelessWidget {
           eyebrow: "THE HOUR OF MERCY · 3 O'CLOCK",
           title: 'ሺዋን ራሕመቱዅድ',
           description:
-              'The source places this prayer after the chaplet instructions and before the litany.',
+              'Pray this after the chaplet instructions and before the litany.',
           accent: context.palette.marianBlue,
           scale: scale,
         ),
@@ -908,20 +908,28 @@ class _MercyLitany extends StatelessWidget {
           icon: Icons.favorite_rounded,
           eyebrow: 'CALL AND RESPONSE',
           title: parsed.heading,
-          description:
-              '${parsed.rows.length} invocations are separated for easier communal prayer. Printed dot leaders are presentation marks and are not shown.',
+          description: 'Pray each invocation with its response.',
           accent: context.palette.mercyRed,
           scale: scale,
         ),
         const SizedBox(height: 12),
-        for (var index = 0; index < parsed.rows.length; index++) ...[
-          _LitanyRowCard(
-            row: parsed.rows[index],
-            index: index,
-            scale: scale,
+        Container(
+          decoration: BoxDecoration(
+            color: context.palette.card,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: context.palette.outline),
           ),
-          if (index != parsed.rows.length - 1) const SizedBox(height: 7),
-        ],
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var index = 0; index < parsed.rows.length; index++) ...[
+                if (index > 0)
+                  Divider(height: 1, color: context.palette.outline),
+                _LitanyRowCard(row: parsed.rows[index], scale: scale),
+              ],
+            ],
+          ),
+        ),
         if (parsed.finalPrayer.isNotEmpty) ...[
           const SizedBox(height: 14),
           _PrayerPanel(
@@ -958,7 +966,7 @@ class _MercyConclusion extends StatelessWidget {
           icon: Icons.auto_awesome_rounded,
           eyebrow: 'COMPLETE THE DEVOTION',
           title: 'Saint Faustina and final invocation',
-          description: 'The complete ending from the supplied prayer book.',
+          description: 'The complete concluding prayers and invocations.',
           accent: context.palette.marianBlue,
           scale: scale,
         ),
@@ -991,7 +999,7 @@ class _MercyConclusion extends StatelessWidget {
                 PrayerText(reflection, scale: scale),
                 const SizedBox(height: 10),
                 Text(
-                  'SOURCE REFLECTION · SAINT FAUSTINA',
+                  'REFLECTION · SAINT FAUSTINA',
                   style: AppTheme.latin(
                     size: 11.5,
                     w: FontWeight.w700,
@@ -1227,49 +1235,41 @@ _ParsedLitany _parseLitany(String source) {
 
 class _LitanyRowCard extends StatelessWidget {
   final _LitanyRow row;
-  final int index;
   final double scale;
 
   const _LitanyRowCard({
     required this.row,
-    required this.index,
     required this.scale,
   });
 
   @override
   Widget build(BuildContext context) {
-    final accent =
-        index.isEven ? context.palette.mercyRed : context.palette.marianBlue;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(15, 13, 15, 13),
-      decoration: BoxDecoration(
-        color:
-            index.isEven ? context.palette.card : context.palette.surfaceMuted,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: accent.withValues(alpha: 0.22)),
-      ),
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            row.invocation,
-            style:
-                AppTheme.geezSerif(size: 17.5 * scale).copyWith(height: 1.75),
+          Expanded(
+            flex: 3,
+            child: Text(
+              row.invocation,
+              style: AppTheme.geezSerif(
+                size: 17.5 * scale,
+                color: context.palette.ink,
+              ).copyWith(height: 1.75),
+            ),
           ),
           if (row.response.isNotEmpty) ...[
-            const SizedBox(height: 7),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: BorderRadius.circular(99),
-              ),
+            const SizedBox(width: 18),
+            Flexible(
+              flex: 2,
               child: Text(
                 row.response,
+                textAlign: TextAlign.end,
                 style: AppTheme.geezSerif(
-                  size: 15.5 * scale,
+                  size: 16 * scale,
                   w: FontWeight.w700,
-                  color: Colors.white,
+                  color: context.palette.primarySoft,
                 ),
               ),
             ),

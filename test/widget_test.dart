@@ -16,6 +16,17 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byType(NavigationDestination), findsNWidgets(4));
     expect(find.text('Quick prayer'), findsOneWidget);
+    expect(find.text('Catholic Eparchy of Keren'), findsNothing);
+
+    await tester.tap(find.text('Rosary: opening, mysteries & litany'));
+    await tester.pumpAndSettle();
+    expect(find.text('ROSARY'), findsOneWidget);
+    expect(find.text('Opening, mysteries & litany'), findsOneWidget);
+    expect(find.text('Other Marian prayer'), findsOneWidget);
+    expect(find.text('Opening Prayers of the Rosary'), findsNothing);
+
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('ጠፍሕ · Search'));
     await tester.pumpAndSettle();
@@ -47,7 +58,20 @@ void main() {
     await tester.tap(find.text('Opening, mysteries & litany'));
     await tester.pumpAndSettle();
     expect(find.text('7 connected sections'), findsOneWidget);
-    expect(find.text('Complete sequence · 7 sections'), findsOneWidget);
+    expect(find.text('Opening prayers · 1 section'), findsOneWidget);
+    expect(find.text('Choose one set · 4 sections'), findsOneWidget);
+    expect(find.text('Final prayers · 2 sections'), findsOneWidget);
+    expect(find.text('ማርያምር ጅኝጃን'), findsOneWidget);
+
+    await tester.drag(find.byType(ListView).last, const Offset(0, -900));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ማርያምር ጅኝጃን'));
+    await tester.pumpAndSettle();
+    expect(find.text('ዎ ይና አደራ'), findsNWidgets(3));
+    expect(find.text('ረሓሚና'), findsNWidgets(3));
+    expect(find.text('ዎ ክርስቶስ'), findsNWidgets(2));
+    expect(find.text('ዋሲና'), findsOneWidget);
+    expect(find.text('ሸኑሪና'), findsOneWidget);
   });
 }
 
@@ -57,7 +81,7 @@ Future<void> _pumpLoadedApp(WidgetTester tester) async {
     () => Future<void>.delayed(const Duration(milliseconds: 100)),
   );
   for (var attempt = 0;
-      attempt < 20 && find.byType(NavigationBar).evaluate().isEmpty;
+      attempt < 80 && find.byType(NavigationBar).evaluate().isEmpty;
       attempt++) {
     await tester.pump(const Duration(milliseconds: 50));
   }
