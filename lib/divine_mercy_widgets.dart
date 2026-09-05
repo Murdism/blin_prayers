@@ -4,10 +4,6 @@ import 'data.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-const _mercyRed = Color(0xFF9F2638);
-const _mercyBlue = Color(0xFF355F91);
-const _mercyInk = Color(0xFF2C2524);
-
 class DivineMercyStageDefinition {
   final String eyebrow;
   final String title;
@@ -70,7 +66,7 @@ class DivineMercyJourney extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.palette.card,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: const Color(0xFFD3B87B), width: 1.4),
         boxShadow: const [
@@ -100,7 +96,7 @@ class DivineMercyJourney extends StatelessWidget {
                   style: AppTheme.latin(
                     size: 19,
                     w: FontWeight.w700,
-                    color: AppColors.wine,
+                    color: context.palette.primary,
                     style: FontStyle.normal,
                   ),
                 ),
@@ -163,6 +159,8 @@ class _MercyJourneyHero extends StatelessWidget {
                   visual!.asset,
                   fit: BoxFit.cover,
                   alignment: Alignment.topCenter,
+                  cacheWidth:
+                      (700 * MediaQuery.devicePixelRatioOf(context)).round(),
                   excludeFromSemantics: true,
                 );
           final copy = _MercyHeroCopy(
@@ -244,7 +242,7 @@ class _MercyHeroCopy extends StatelessWidget {
         children: [
           Row(
             children: [
-              const _HeroPill(label: 'SOURCE PAGES 29–35'),
+              const _HeroPill(label: 'COMPLETE DEVOTION'),
               if (favorite) ...[
                 const SizedBox(width: 7),
                 const Icon(Icons.star_rounded,
@@ -336,9 +334,10 @@ class _MercyStageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = index.isEven ? _mercyRed : _mercyBlue;
+    final accent =
+        index.isEven ? context.palette.mercyRed : context.palette.marianBlue;
     return Material(
-      color: index.isEven ? const Color(0xFFFFF5F0) : const Color(0xFFF2F6FA),
+      color: index.isEven ? context.palette.card : context.palette.surfaceMuted,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -371,7 +370,7 @@ class _MercyStageCard extends StatelessWidget {
                       style: AppTheme.latin(
                         size: 16.5,
                         w: FontWeight.w700,
-                        color: _mercyInk,
+                        color: context.palette.ink,
                         style: FontStyle.normal,
                       ),
                     ),
@@ -479,6 +478,7 @@ class DivineMercyReader extends StatelessWidget {
   final double scale;
   final bool showNotes;
   final ValueChanged<int> onStageChanged;
+  final VoidCallback onCompleted;
   final void Function(ContentVisual visual, String label) onImageTap;
 
   const DivineMercyReader({
@@ -488,6 +488,7 @@ class DivineMercyReader extends StatelessWidget {
     required this.scale,
     required this.showNotes,
     required this.onStageChanged,
+    required this.onCompleted,
     required this.onImageTap,
   });
 
@@ -549,6 +550,7 @@ class DivineMercyReader extends StatelessWidget {
         _MercyNavigation(
           stageIndex: safeStage,
           onSelected: onStageChanged,
+          onCompleted: onCompleted,
         ),
       ],
     );
@@ -625,7 +627,9 @@ class _MercyReaderHero extends StatelessWidget {
                 decoration: BoxDecoration(
                   border: Border(
                     top: BorderSide(
-                      color: stageIndex.isEven ? _mercyRed : _mercyBlue,
+                      color: stageIndex.isEven
+                          ? context.palette.mercyRed
+                          : context.palette.marianBlue,
                       width: 3,
                     ),
                   ),
@@ -700,9 +704,9 @@ class _MercyStageSelector extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(7),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.palette.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.palette.outline),
       ),
       child: Row(
         children: [
@@ -716,7 +720,9 @@ class _MercyStageSelector extends StatelessWidget {
                   label: '${index + 1}. ${divineMercyStages[index].title}',
                   child: Material(
                     color: selected == index
-                        ? (index.isEven ? _mercyRed : _mercyBlue)
+                        ? (index.isEven
+                            ? context.palette.mercyRed
+                            : context.palette.marianBlue)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                     child: InkWell(
@@ -731,7 +737,7 @@ class _MercyStageSelector extends StatelessWidget {
                               size: 20,
                               color: selected == index
                                   ? Colors.white
-                                  : AppColors.inkSoft,
+                                  : context.palette.inkMuted,
                             ),
                             const SizedBox(height: 3),
                             Text(
@@ -741,7 +747,7 @@ class _MercyStageSelector extends StatelessWidget {
                                 w: FontWeight.w700,
                                 color: selected == index
                                     ? Colors.white
-                                    : AppColors.inkSoft,
+                                    : context.palette.inkMuted,
                                 style: FontStyle.normal,
                               ),
                             ),
@@ -778,8 +784,8 @@ class _ChapletSteps extends StatelessWidget {
           eyebrow: 'BEGIN THE DEVOTION',
           title: content.heading,
           description:
-              'Follow all ten steps in source order. The complete prayers from pages 42–43 are included directly.',
-          accent: _mercyRed,
+              'Follow all ten steps in order. The complete opening prayers are included directly.',
+          accent: context.palette.mercyRed,
           scale: scale,
         ),
         const SizedBox(height: 12),
@@ -811,9 +817,9 @@ class _InstructionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.palette.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.palette.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -828,7 +834,9 @@ class _InstructionCard extends StatelessWidget {
                   height: 39,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: number.isEven ? _mercyBlue : _mercyRed,
+                    color: number.isEven
+                        ? context.palette.marianBlue
+                        : context.palette.mercyRed,
                     shape: BoxShape.circle,
                   ),
                   child: Text(
@@ -869,12 +877,12 @@ class _ThreeOClockPrayer extends StatelessWidget {
           title: 'ሺዋን ራሕመቱዅድ',
           description:
               'The source places this prayer after the chaplet instructions and before the litany.',
-          accent: _mercyBlue,
+          accent: context.palette.marianBlue,
           scale: scale,
         ),
         const SizedBox(height: 12),
         _PrayerPanel(
-          accent: _mercyBlue,
+          accent: context.palette.marianBlue,
           icon: Icons.water_drop_outlined,
           label: 'PRAYER OF TRUST',
           child: PrayerText(text, scale: scale),
@@ -902,7 +910,7 @@ class _MercyLitany extends StatelessWidget {
           title: parsed.heading,
           description:
               '${parsed.rows.length} invocations are separated for easier communal prayer. Printed dot leaders are presentation marks and are not shown.',
-          accent: _mercyRed,
+          accent: context.palette.mercyRed,
           scale: scale,
         ),
         const SizedBox(height: 12),
@@ -917,7 +925,7 @@ class _MercyLitany extends StatelessWidget {
         if (parsed.finalPrayer.isNotEmpty) ...[
           const SizedBox(height: 14),
           _PrayerPanel(
-            accent: _mercyBlue,
+            accent: context.palette.marianBlue,
             icon: Icons.self_improvement_rounded,
             label: 'ሺውኒን · CLOSING PRAYER',
             child: PrayerText(parsed.finalPrayer, scale: scale),
@@ -950,14 +958,13 @@ class _MercyConclusion extends StatelessWidget {
           icon: Icons.auto_awesome_rounded,
           eyebrow: 'COMPLETE THE DEVOTION',
           title: 'Saint Faustina and final invocation',
-          description:
-              'The complete ending from page 47 of the supplied source book.',
-          accent: _mercyBlue,
+          description: 'The complete ending from the supplied prayer book.',
+          accent: context.palette.marianBlue,
           scale: scale,
         ),
         const SizedBox(height: 12),
         _PrayerPanel(
-          accent: _mercyBlue,
+          accent: context.palette.marianBlue,
           icon: Icons.self_improvement_rounded,
           label: 'FINAL INVOCATIONS',
           child: PrayerText(invocation, scale: scale),
@@ -967,19 +974,19 @@ class _MercyConclusion extends StatelessWidget {
           Container(
             padding: const EdgeInsets.fromLTRB(19, 18, 19, 19),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFFF6E5E0), Color(0xFFE9EEF5)],
+                colors: [context.palette.card, context.palette.surfaceMuted],
               ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFD7B9B6)),
+              border: Border.all(color: context.palette.outline),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.format_quote_rounded,
-                    size: 30, color: _mercyRed),
+                Icon(Icons.format_quote_rounded,
+                    size: 30, color: context.palette.mercyRed),
                 const SizedBox(height: 7),
                 PrayerText(reflection, scale: scale),
                 const SizedBox(height: 10),
@@ -988,7 +995,7 @@ class _MercyConclusion extends StatelessWidget {
                   style: AppTheme.latin(
                     size: 11.5,
                     w: FontWeight.w700,
-                    color: _mercyBlue,
+                    color: context.palette.marianBlue,
                     style: FontStyle.normal,
                   ),
                 ),
@@ -1001,8 +1008,8 @@ class _MercyConclusion extends StatelessWidget {
           Container(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 21),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [_mercyRed, _mercyBlue],
+              gradient: LinearGradient(
+                colors: [context.palette.mercyRed, context.palette.marianBlue],
               ),
               borderRadius: BorderRadius.circular(20),
               boxShadow: const [
@@ -1058,7 +1065,7 @@ class _StageHeading extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 17, 18, 18),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.palette.card,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: accent.withValues(alpha: 0.35), width: 1.3),
       ),
@@ -1096,7 +1103,7 @@ class _StageHeading extends StatelessWidget {
             style: AppTheme.geezSerif(
               size: 23 * scale,
               w: FontWeight.w700,
-              color: AppColors.wine,
+              color: context.palette.primary,
             ).copyWith(height: 1.4),
           ),
           const SizedBox(height: 5),
@@ -1129,7 +1136,7 @@ class _PrayerPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.palette.card,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: accent.withValues(alpha: 0.34)),
       ),
@@ -1153,9 +1160,9 @@ class _PrayerPanel extends StatelessWidget {
               ),
             ],
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 13),
-            child: Divider(height: 1, color: AppColors.line),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            child: Divider(height: 1, color: context.palette.outline),
           ),
           child,
         ],
@@ -1231,11 +1238,13 @@ class _LitanyRowCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = index.isEven ? _mercyRed : _mercyBlue;
+    final accent =
+        index.isEven ? context.palette.mercyRed : context.palette.marianBlue;
     return Container(
       padding: const EdgeInsets.fromLTRB(15, 13, 15, 13),
       decoration: BoxDecoration(
-        color: index.isEven ? const Color(0xFFFFF8F3) : const Color(0xFFF4F7FA),
+        color:
+            index.isEven ? context.palette.card : context.palette.surfaceMuted,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: accent.withValues(alpha: 0.22)),
       ),
@@ -1274,8 +1283,13 @@ class _LitanyRowCard extends StatelessWidget {
 class _MercyNavigation extends StatelessWidget {
   final int stageIndex;
   final ValueChanged<int> onSelected;
+  final VoidCallback onCompleted;
 
-  const _MercyNavigation({required this.stageIndex, required this.onSelected});
+  const _MercyNavigation({
+    required this.stageIndex,
+    required this.onSelected,
+    required this.onCompleted,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1302,7 +1316,13 @@ class _MercyNavigation extends StatelessWidget {
             ),
           )
         else
-          const Spacer(),
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: onCompleted,
+              icon: const Icon(Icons.check_circle_outline_rounded),
+              label: const Text('ተመሙዅ · Complete'),
+            ),
+          ),
       ],
     );
   }

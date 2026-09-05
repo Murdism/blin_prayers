@@ -38,6 +38,7 @@ class WayOfCrossJourney extends StatelessWidget {
         _JourneyHero(
           stationCount: stations.length,
           onBegin: preparation == null ? null : () => onOpen(preparation),
+          visual: stations.firstOrNull?.visuals.firstOrNull,
         ),
         if (preparation != null) ...[
           const SizedBox(height: 14),
@@ -58,7 +59,7 @@ class WayOfCrossJourney extends StatelessWidget {
                 style: AppTheme.latin(
                   size: 19,
                   w: FontWeight.w700,
-                  color: AppColors.wine,
+                  color: context.palette.primary,
                   style: FontStyle.normal,
                 ),
               ),
@@ -68,7 +69,7 @@ class WayOfCrossJourney extends StatelessWidget {
               style: AppTheme.latin(
                 size: 14,
                 w: FontWeight.w600,
-                color: AppColors.inkSoft,
+                color: context.palette.inkMuted,
                 style: FontStyle.normal,
               ),
             ),
@@ -126,8 +127,13 @@ class WayOfCrossJourney extends StatelessWidget {
 class _JourneyHero extends StatelessWidget {
   final int stationCount;
   final VoidCallback? onBegin;
+  final ContentVisual? visual;
 
-  const _JourneyHero({required this.stationCount, required this.onBegin});
+  const _JourneyHero({
+    required this.stationCount,
+    required this.onBegin,
+    required this.visual,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -135,10 +141,10 @@ class _JourneyHero extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.wine, AppColors.wineDeep],
+          colors: [context.palette.primaryDark, const Color(0xFF321015)],
         ),
         boxShadow: const [
           BoxShadow(
@@ -150,6 +156,32 @@ class _JourneyHero extends StatelessWidget {
       ),
       child: Stack(
         children: [
+          if (visual != null)
+            Positioned.fill(
+              child: Image.asset(
+                visual!.asset,
+                alignment: Alignment.centerRight,
+                fit: BoxFit.cover,
+                cacheWidth:
+                    (850 * MediaQuery.devicePixelRatioOf(context)).round(),
+                excludeFromSemantics: true,
+              ),
+            ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    context.palette.primaryDark,
+                    context.palette.primaryDark.withValues(alpha: 0.82),
+                    const Color(0xB8321015),
+                  ],
+                ),
+              ),
+            ),
+          ),
           const Positioned(
             right: -18,
             top: -42,
@@ -214,7 +246,7 @@ class _JourneyHero extends StatelessWidget {
                   FilledButton.icon(
                     onPressed: onBegin,
                     style: FilledButton.styleFrom(
-                      foregroundColor: AppColors.wineDeep,
+                      foregroundColor: context.palette.primaryDark,
                       backgroundColor: const Color(0xFFF4DDAA),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 12),
@@ -225,7 +257,7 @@ class _JourneyHero extends StatelessWidget {
                       style: AppTheme.latin(
                         size: 15,
                         w: FontWeight.w700,
-                        color: AppColors.wineDeep,
+                        color: context.palette.primaryDark,
                         style: FontStyle.normal,
                       ),
                     ),
@@ -256,18 +288,20 @@ class _StationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visual = item.visuals.firstOrNull;
+    final thumbnailWidth =
+        (116 * MediaQuery.devicePixelRatioOf(context)).round();
     return Semantics(
       button: true,
       label: 'Station $station. ${item.title}. ${item.sub}',
       child: Material(
-        color: AppColors.card,
+        color: context.palette.card,
         borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.line, width: 1.25),
+              border: Border.all(color: context.palette.outline, width: 1.25),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Row(
@@ -282,15 +316,16 @@ class _StationCard extends StatelessWidget {
                         Image.asset(
                           visual.asset,
                           fit: BoxFit.cover,
+                          cacheWidth: thumbnailWidth,
                           excludeFromSemantics: true,
-                          errorBuilder: (_, __, ___) => const ColoredBox(
-                            color: AppColors.parch2,
+                          errorBuilder: (_, __, ___) => ColoredBox(
+                            color: context.palette.surfaceMuted,
                             child: Icon(Icons.image_not_supported_outlined,
-                                color: AppColors.gold),
+                                color: context.palette.goldText),
                           ),
                         )
                       else
-                        const ColoredBox(color: AppColors.parch2),
+                        ColoredBox(color: context.palette.surfaceMuted),
                       const DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -308,7 +343,7 @@ class _StationCard extends StatelessWidget {
                           height: 38,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: AppColors.wine,
+                            color: context.palette.primaryDark,
                             shape: BoxShape.circle,
                             border: Border.all(
                                 color: const Color(0xFFE7CA8B), width: 1.5),
@@ -342,14 +377,14 @@ class _StationCard extends StatelessWidget {
                                 style: AppTheme.latin(
                                   size: 11.5,
                                   w: FontWeight.w700,
-                                  color: AppColors.gold,
+                                  color: context.palette.goldText,
                                   style: FontStyle.normal,
                                 ),
                               ),
                             ),
                             if (favorite)
-                              const Icon(Icons.star_rounded,
-                                  size: 18, color: AppColors.gold),
+                              Icon(Icons.star_rounded,
+                                  size: 18, color: context.palette.goldText),
                           ],
                         ),
                         const SizedBox(height: 5),
@@ -360,7 +395,7 @@ class _StationCard extends StatelessWidget {
                           style: AppTheme.geezSerif(
                             size: 17,
                             w: FontWeight.w700,
-                            color: AppColors.wine,
+                            color: context.palette.primary,
                           ),
                         ),
                         const SizedBox(height: 5),
@@ -381,13 +416,13 @@ class _StationCard extends StatelessWidget {
                               style: AppTheme.latin(
                                 size: 13,
                                 w: FontWeight.w700,
-                                color: AppColors.wineSoft,
+                                color: context.palette.primarySoft,
                                 style: FontStyle.normal,
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(Icons.arrow_forward_rounded,
-                                size: 17, color: AppColors.wineSoft),
+                            Icon(Icons.arrow_forward_rounded,
+                                size: 17, color: context.palette.primarySoft),
                           ],
                         ),
                       ],
@@ -422,15 +457,18 @@ class _BookendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final thumbnailWidth =
+        (104 * MediaQuery.devicePixelRatioOf(context)).round();
     return Material(
-      color: const Color(0xFFF7EBD3),
+      color: context.palette.surfaceMuted,
       borderRadius: BorderRadius.circular(18),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.goldSoft, width: 1.2),
+            border:
+                Border.all(color: context.palette.goldDecorative, width: 1.2),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(
@@ -442,6 +480,7 @@ class _BookendCard extends StatelessWidget {
                   child: Image.asset(
                     visual!.asset,
                     fit: BoxFit.cover,
+                    cacheWidth: thumbnailWidth,
                     excludeFromSemantics: true,
                   ),
                 )
@@ -450,8 +489,8 @@ class _BookendCard extends StatelessWidget {
                   width: 74,
                   height: 138,
                   alignment: Alignment.center,
-                  color: const Color(0xFFEEE0C4),
-                  child: Icon(icon, size: 30, color: AppColors.wine),
+                  color: context.palette.surfaceMuted,
+                  child: Icon(icon, size: 30, color: context.palette.primary),
                 ),
               Expanded(
                 child: Padding(
@@ -464,7 +503,7 @@ class _BookendCard extends StatelessWidget {
                         style: AppTheme.latin(
                           size: 11,
                           w: FontWeight.w700,
-                          color: AppColors.gold,
+                          color: context.palette.goldText,
                           style: FontStyle.normal,
                         ),
                       ),
@@ -476,7 +515,7 @@ class _BookendCard extends StatelessWidget {
                         style: AppTheme.geezSerif(
                           size: 18,
                           w: FontWeight.w700,
-                          color: AppColors.wine,
+                          color: context.palette.primary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -493,7 +532,7 @@ class _BookendCard extends StatelessWidget {
                         style: AppTheme.latin(
                           size: 13,
                           w: FontWeight.w700,
-                          color: AppColors.wineSoft,
+                          color: context.palette.primarySoft,
                           style: FontStyle.normal,
                         ),
                       ),
@@ -501,10 +540,10 @@ class _BookendCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.only(right: 12),
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
                 child: Icon(Icons.chevron_right_rounded,
-                    color: AppColors.wineSoft),
+                    color: context.palette.primarySoft),
               ),
             ],
           ),

@@ -153,6 +153,28 @@ class AppData {
     final items = <Item>[];
     final groupMeta = <String, ({String title, String en})>{};
 
+    // Page references remain in canonical JSON for provenance and automated
+    // source audits, but are editorial metadata rather than reader-facing copy.
+    String displayCopy(Object? raw) {
+      return (raw ?? '')
+          .toString()
+          .replaceAll(
+            RegExp(
+              r'\s*·\s*Source pages?\s+\d+(?:[–-]\d+)?',
+              caseSensitive: false,
+            ),
+            '',
+          )
+          .replaceAll(
+            RegExp(
+              r'\s+from source pages?\s+\d+(?:[–-]\d+)?',
+              caseSensitive: false,
+            ),
+            '',
+          )
+          .trim();
+    }
+
     QA parseQA(Map m) => QA(
           (m['q'] ?? '').toString(),
           (m['a'] ?? '').toString(),
@@ -191,8 +213,8 @@ class AppData {
           groupTitle: g['title'].toString(),
           groupEn: g['en'].toString(),
           title: s['title'].toString(),
-          sub: (s['subtitle'] ?? '').toString(),
-          note: (s['note'] ?? '').toString(),
+          sub: displayCopy(s['subtitle']),
+          note: displayCopy(s['note']),
           translation: (s['translation'] ?? '').toString(),
           body: (s['body'] ?? '').toString(),
           visuals: parseVisuals(s as Map),

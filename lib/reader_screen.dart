@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'data.dart';
 import 'store.dart';
@@ -10,13 +12,15 @@ class ReaderScreen extends StatefulWidget {
   final AppData data;
   final AppStore store;
   final String itemId;
-  final int initialMercyStage;
+  final int? initialMercyStage;
+  final String? initialQuery;
   const ReaderScreen({
     super.key,
     required this.data,
     required this.store,
     required this.itemId,
-    this.initialMercyStage = 0,
+    this.initialMercyStage,
+    this.initialQuery,
   });
 
   @override
@@ -26,29 +30,89 @@ class ReaderScreen extends StatefulWidget {
 class _ReaderScreenState extends State<ReaderScreen> {
   late Item item;
   late int _mercyStage;
-  final _scrollController = ScrollController();
+  late final ScrollController _scrollController;
+  Timer? _saveTimer;
+  late String _highlightQuery;
 
   @override
   void initState() {
     super.initState();
     item = widget.data.byId(widget.itemId)!;
-    _mercyStage =
-        widget.initialMercyStage.clamp(0, divineMercyStages.length - 1).toInt();
+    _mercyStage = (widget.initialMercyStage ?? widget.store.mercyStage)
+        .clamp(0, divineMercyStages.length - 1)
+        .toInt();
+    _highlightQuery = widget.initialQuery?.trim() ?? '';
+    _scrollController = ScrollController(
+      initialScrollOffset: widget.store.readingOffset(item.id),
+    )..addListener(_schedulePositionSave);
+    widget.store.recordOpened(item.id);
+    if (_highlightQuery.isNotEmpty &&
+        widget.store.readingOffset(item.id) == 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSearchHit());
+    }
   }
 
   @override
   void dispose() {
+    _saveTimer?.cancel();
+    if (_scrollController.hasClients) {
+      widget.store.setReadingOffset(item.id, _scrollController.offset);
+    }
     _scrollController.dispose();
     super.dispose();
   }
 
+  void _schedulePositionSave() {
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 450), () {
+      if (_scrollController.hasClients) {
+        widget.store.setReadingOffset(item.id, _scrollController.offset);
+      }
+    });
+  }
+
+  void _scrollToSearchHit() {
+    if (!_scrollController.hasClients || _highlightQuery.isEmpty) return;
+    final query = _highlightQuery.toLowerCase();
+    final position = item.body.toLowerCase().indexOf(query);
+    var ratio = 0.0;
+    if (position >= 0 && item.body.isNotEmpty) {
+      ratio = position / item.body.length;
+    } else if (item.qa.isNotEmpty) {
+      final qaIndex = item.qa.indexWhere(
+        (pair) => '${pair.q} ${pair.a}'.toLowerCase().contains(query),
+      );
+      if (qaIndex < 0) return;
+      ratio = qaIndex / item.qa.length;
+    } else {
+      return;
+    }
+    final target = (_scrollController.position.maxScrollExtent * ratio)
+        .clamp(0.0, _scrollController.position.maxScrollExtent);
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   void _open(Item it) {
     if (item.group == it.group) {
-      setState(() => item = it);
+      if (_scrollController.hasClients) {
+        widget.store.setReadingOffset(item.id, _scrollController.offset);
+      }
+      setState(() {
+        item = it;
+        _highlightQuery = '';
+      });
+      widget.store.recordOpened(it.id);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients) {
           _scrollController.animateTo(
-            0,
+            widget.store.readingOffset(it.id).clamp(
+                  0,
+                  _scrollController.position.maxScrollExtent,
+                ),
             duration: const Duration(milliseconds: 320),
             curve: Curves.easeOutCubic,
           );
@@ -72,7 +136,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         final scale = s.scale;
         return Scaffold(
           appBar: AppBar(
-            backgroundColor: AppColors.wine,
+            backgroundColor: context.palette.primaryDark,
             foregroundColor: const Color(0xFFF7ECD6),
             elevation: 2,
             title: Text(item.groupEn,
@@ -81,38 +145,70 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     w: FontWeight.w600,
                     color: const Color(0xFFF7ECD6))),
             actions: [
-              if (item.group == 'way')
-                IconButton(
-                  tooltip: 'All stations',
-                  onPressed: _showWayStationPicker,
-                  icon: const Icon(Icons.grid_view_rounded),
-                ),
-              if (item.group == 'mercy')
-                IconButton(
-                  tooltip: 'Divine Mercy stages',
-                  onPressed: _showMercyStagePicker,
-                  icon: const Icon(Icons.favorite_rounded),
-                ),
               PopupMenuButton<String>(
-                tooltip: 'Text size',
-                icon: const Icon(Icons.text_fields_rounded),
-                onSelected: (value) =>
-                    s.bumpScale(value == 'smaller' ? -0.1 : 0.1),
+                tooltip: 'Reading options',
+                icon: const Icon(Icons.tune_rounded),
+                onSelected: (value) {
+                  final sizes = {
+                    'small': .9,
+                    'standard': 1.0,
+                    'large': 1.25,
+                    'extra': 1.55,
+                  };
+                  if (sizes.containsKey(value)) {
+                    s.setScale(sizes[value]!);
+                  } else if (value == 'restart') {
+                    s.resetReading(item.id);
+                    if (item.group == 'mercy') _setMercyStage(0);
+                    if (_scrollController.hasClients) {
+                      _scrollController.animateTo(
+                        0,
+                        duration: const Duration(milliseconds: 320),
+                        curve: Curves.easeOutCubic,
+                      );
+                    }
+                  }
+                },
                 itemBuilder: (context) => const [
                   PopupMenuItem(
-                    value: 'smaller',
+                    value: 'small',
                     child: ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.text_decrease_rounded),
-                      title: Text('Smaller text'),
+                      title: Text('Small text'),
                     ),
                   ),
                   PopupMenuItem(
-                    value: 'larger',
+                    value: 'standard',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.text_fields_rounded),
+                      title: Text('Standard text'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'large',
                     child: ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.text_increase_rounded),
-                      title: Text('Larger text'),
+                      title: Text('Large text'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'extra',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.format_size_rounded),
+                      title: Text('Extra-large text'),
+                    ),
+                  ),
+                  PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'restart',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.restart_alt_rounded),
+                      title: Text('Start this prayer again'),
                     ),
                   ),
                 ],
@@ -125,7 +221,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     ..hideCurrentSnackBar()
                     ..showSnackBar(SnackBar(
                       behavior: SnackBarBehavior.floating,
-                      backgroundColor: AppColors.wineDeep,
+                      backgroundColor: context.palette.primaryDark,
                       duration: const Duration(milliseconds: 1300),
                       content: Text(on ? 'ናድካ ሓፍዘዅ ★' : 'ናድካ ኡረዅ',
                           style: AppTheme.geezSerif(
@@ -153,6 +249,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                               scale: scale,
                               showNotes: s.showNotes,
                               onStageChanged: _setMercyStage,
+                              onCompleted: _markCurrentComplete,
                               onImageTap: _openVisual,
                             )
                           : Column(
@@ -173,6 +270,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   void _setMercyStage(int stage) {
     setState(() => _mercyStage = stage);
+    widget.store.setMercyStage(stage);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -184,95 +282,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
     });
   }
 
-  void _showMercyStagePicker() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.parch,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.line,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(6, 16, 6, 12),
-                child: Text(
-                  'Divine Mercy · Choose a stage',
-                  style: AppTheme.latin(
-                    size: 20,
-                    w: FontWeight.w700,
-                    color: AppColors.wine,
-                    style: FontStyle.normal,
-                  ),
-                ),
-              ),
-              for (var index = 0; index < divineMercyStages.length; index++)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    tileColor: index == _mercyStage
-                        ? const Color(0xFFF0DDB7)
-                        : AppColors.card,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(
-                        color: index == _mercyStage
-                            ? AppColors.gold
-                            : AppColors.line,
-                      ),
-                    ),
-                    leading: CircleAvatar(
-                      backgroundColor: index == _mercyStage
-                          ? AppColors.wine
-                          : const Color(0xFFE9D9BA),
-                      foregroundColor: index == _mercyStage
-                          ? const Color(0xFFF9EFD9)
-                          : AppColors.wine,
-                      child: Text('${index + 1}'),
-                    ),
-                    title: Text(
-                      divineMercyStages[index].title,
-                      style: AppTheme.latin(
-                        size: 16,
-                        w: FontWeight.w700,
-                        color: AppColors.wine,
-                        style: FontStyle.normal,
-                      ),
-                    ),
-                    subtitle: Text(
-                      divineMercyStages[index].description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: index == _mercyStage
-                        ? const Icon(Icons.check_circle_rounded,
-                            color: AppColors.wine)
-                        : const Icon(Icons.chevron_right_rounded),
-                    onTap: () {
-                      Navigator.of(sheetContext).pop();
-                      _setMercyStage(index);
-                    },
-                  ),
-                ),
-            ],
-          ),
+  void _markCurrentComplete() {
+    widget.store.markCompleted(item.id);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('ተመሙዅ · Prayer completed'),
         ),
-      ),
-    );
+      );
   }
 
   List<Item> get _wayItems => widget.data.itemsInGroup('way');
@@ -296,9 +315,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
         Container(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
           decoration: BoxDecoration(
-            color: AppColors.card,
+            color: context.palette.card,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.line, width: 1.25),
+            border: Border.all(color: context.palette.outline, width: 1.25),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,7 +328,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   style: AppTheme.latin(
                     size: 12.5,
                     w: FontWeight.w700,
-                    color: AppColors.gold,
+                    color: context.palette.goldText,
                     style: FontStyle.normal,
                   ),
                 ),
@@ -318,7 +337,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 style: AppTheme.geezSerif(
                   size: 27 * scale,
                   w: FontWeight.w700,
-                  color: AppColors.wine,
+                  color: context.palette.primary,
                 ).copyWith(height: 1.35),
               ),
               if (item.sub.isNotEmpty) ...[
@@ -367,9 +386,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 13, 16, 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8ECD5),
+        color: context.palette.surfaceMuted,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.goldSoft),
+        border: Border.all(color: context.palette.goldDecorative),
       ),
       child: Column(
         children: [
@@ -379,8 +398,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 width: 34,
                 height: 34,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: AppColors.wine,
+                decoration: BoxDecoration(
+                  color: context.palette.primaryDark,
                   shape: BoxShape.circle,
                 ),
                 child: Text(
@@ -404,7 +423,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       style: AppTheme.latin(
                         size: 15.5,
                         w: FontWeight.w700,
-                        color: AppColors.wine,
+                        color: context.palette.primary,
                         style: FontStyle.normal,
                       ),
                     ),
@@ -416,11 +435,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   ],
                 ),
               ),
-              IconButton(
-                tooltip: 'Choose another station',
-                onPressed: _showWayStationPicker,
-                icon: const Icon(Icons.apps_rounded, color: AppColors.wine),
-              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -429,8 +443,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 6,
-              backgroundColor: const Color(0xFFE7D8BA),
-              color: AppColors.wine,
+              backgroundColor: context.palette.outline,
+              color: context.palette.primary,
             ),
           ),
         ],
@@ -443,7 +457,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final details = [
       if (visual.caption.trim().isNotEmpty) visual.caption.trim(),
       if (visual.credit.trim().isNotEmpty) visual.credit.trim(),
-      if (visual.sourcePage != null) 'Source page ${visual.sourcePage}',
     ].join(' · ');
 
     return Column(
@@ -507,7 +520,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                             height: 44,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: AppColors.wine,
+                              color: context.palette.primaryDark,
                               shape: BoxShape.circle,
                               border: Border.all(
                                   color: const Color(0xFFE7CA8B), width: 1.5),
@@ -571,17 +584,19 @@ class _ReaderScreenState extends State<ReaderScreen> {
   Widget _wayPrayerCard(_WaySection section, double scale, int index) {
     final isScripture = section.kind == _WaySectionKind.scripture;
     final color = isScripture
-        ? const Color(0xFFF6E9CF)
+        ? context.palette.surfaceMuted
         : index.isEven
-            ? AppColors.card
-            : const Color(0xFFFFFAF0);
+            ? context.palette.card
+            : context.palette.surface;
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 17, 18, 20),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isScripture ? AppColors.goldSoft : AppColors.line,
+          color: isScripture
+              ? context.palette.goldDecorative
+              : context.palette.outline,
           width: isScripture ? 1.5 : 1.1,
         ),
         boxShadow: const [
@@ -602,12 +617,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 height: 34,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: isScripture
-                      ? const Color(0xFFE5CD9A)
-                      : const Color(0xFFF0DFC1),
+                  color: context.palette.surfaceMuted,
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child: Icon(section.icon, size: 19, color: AppColors.wine),
+                child: Icon(section.icon,
+                    size: 19, color: context.palette.primary),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -616,18 +630,24 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   style: AppTheme.latin(
                     size: 12,
                     w: FontWeight.w700,
-                    color: isScripture ? AppColors.wine : AppColors.gold,
+                    color: isScripture
+                        ? context.palette.primary
+                        : context.palette.goldText,
                     style: FontStyle.normal,
                   ),
                 ),
               ),
             ],
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 13),
-            child: Divider(height: 1, color: AppColors.line),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            child: Divider(height: 1, color: context.palette.outline),
           ),
-          PrayerText(section.text, scale: scale),
+          PrayerText(
+            section.text,
+            scale: scale,
+            highlightQuery: _highlightQuery,
+          ),
         ],
       ),
     );
@@ -651,35 +671,36 @@ class _ReaderScreenState extends State<ReaderScreen> {
               child: OutlinedButton.icon(
                 onPressed: previous == null ? null : () => _open(previous),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.wine,
-                  side: const BorderSide(color: AppColors.wine),
+                  foregroundColor: context.palette.primary,
+                  side: BorderSide(color: context.palette.primary),
                   padding: const EdgeInsets.symmetric(vertical: 13),
                 ),
                 icon: const Icon(Icons.arrow_back_rounded, size: 19),
-                label: const Text('Previous'),
+                label: const Text('ደምቢራ'),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
+            IconButton.outlined(
+              tooltip: 'Choose a station',
+              onPressed: _showWayStationPicker,
+              icon: const Icon(Icons.apps_rounded),
+            ),
+            const SizedBox(width: 8),
             Expanded(
               child: FilledButton.icon(
-                onPressed: next == null ? null : () => _open(next),
+                onPressed:
+                    next == null ? _markCurrentComplete : () => _open(next),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.wine,
+                  backgroundColor: context.palette.primaryDark,
                   foregroundColor: const Color(0xFFF9EFD9),
                   padding: const EdgeInsets.symmetric(vertical: 13),
                 ),
                 iconAlignment: IconAlignment.end,
                 icon: const Icon(Icons.arrow_forward_rounded, size: 19),
-                label: Text(next == null ? 'Complete' : 'Next'),
+                label: Text(next == null ? 'ተመሙዅ' : 'ቀጽሊ'),
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 10),
-        TextButton.icon(
-          onPressed: _showWayStationPicker,
-          icon: const Icon(Icons.grid_view_rounded),
-          label: const Text('View the complete Way of the Cross'),
         ),
       ],
     );
@@ -689,7 +710,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.parch,
+      backgroundColor: context.palette.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -705,7 +726,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   height: 4,
                   margin: const EdgeInsets.only(top: 10),
                   decoration: BoxDecoration(
-                    color: AppColors.line,
+                    color: context.palette.outline,
                     borderRadius: BorderRadius.circular(99),
                   ),
                 ),
@@ -723,7 +744,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                             style: AppTheme.geezSerif(
                               size: 23,
                               w: FontWeight.w700,
-                              color: AppColors.wine,
+                              color: context.palette.primary,
                             ),
                           ),
                           Text(
@@ -742,7 +763,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   ],
                 ),
               ),
-              const Divider(height: 1, color: AppColors.line),
+              Divider(height: 1, color: context.palette.outline),
               Expanded(
                 child: ListView.separated(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
@@ -753,23 +774,26 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     final station = wayStationNumber(candidate);
                     final selected = candidate.id == item.id;
                     return Material(
-                      color:
-                          selected ? const Color(0xFFF0DDB7) : AppColors.card,
+                      color: selected
+                          ? context.palette.surfaceMuted
+                          : context.palette.card,
                       borderRadius: BorderRadius.circular(14),
                       child: ListTile(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                           side: BorderSide(
-                            color: selected ? AppColors.gold : AppColors.line,
+                            color: selected
+                                ? context.palette.goldText
+                                : context.palette.outline,
                           ),
                         ),
                         leading: CircleAvatar(
                           backgroundColor: selected
-                              ? AppColors.wine
-                              : const Color(0xFFE9D9BA),
+                              ? context.palette.primaryDark
+                              : context.palette.surfaceMuted,
                           foregroundColor: selected
                               ? const Color(0xFFF9EFD9)
-                              : AppColors.wine,
+                              : context.palette.ink,
                           child: Text(
                             station?.toString() ??
                                 (candidate.id == 'p_way_conclusion'
@@ -784,7 +808,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                           style: AppTheme.geezSerif(
                             size: 16,
                             w: FontWeight.w700,
-                            color: AppColors.wine,
+                            color: context.palette.primary,
                           ),
                         ),
                         subtitle: Text(
@@ -795,8 +819,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
                               size: 13.5, style: FontStyle.normal),
                         ),
                         trailing: selected
-                            ? const Icon(Icons.check_circle_rounded,
-                                color: AppColors.wine)
+                            ? Icon(Icons.check_circle_rounded,
+                                color: context.palette.primary)
                             : const Icon(Icons.chevron_right_rounded),
                         onTap: () {
                           Navigator.of(sheetContext).pop();
@@ -982,7 +1006,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
               label: prayerParts[index].label,
               icon: prayerParts[index].icon,
               emphasized: prayerParts[index].emphasized,
-              child: PrayerText(prayerParts[index].text, scale: scale),
+              child: PrayerText(
+                prayerParts[index].text,
+                scale: scale,
+                highlightQuery: _highlightQuery,
+              ),
             ),
             if (index != prayerParts.length - 1) const SizedBox(height: 12),
           ],
@@ -997,10 +1025,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.wine, AppColors.wineDeep],
+          colors: [context.palette.primaryDark, const Color(0xFF321015)],
         ),
         boxShadow: const [
           BoxShadow(
@@ -1120,10 +1148,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
       decoration: BoxDecoration(
-        color: emphasized ? const Color(0xFFF6E9CF) : AppColors.card,
+        color: emphasized ? context.palette.surfaceMuted : context.palette.card,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: emphasized ? AppColors.goldSoft : AppColors.line,
+          color: emphasized
+              ? context.palette.goldDecorative
+              : context.palette.outline,
           width: emphasized ? 1.5 : 1.1,
         ),
         boxShadow: const [
@@ -1143,12 +1173,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: emphasized
-                      ? const Color(0xFFE5CD9A)
-                      : const Color(0xFFF0DFC1),
+                  color: context.palette.surfaceMuted,
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child: Icon(icon, size: 19, color: AppColors.wine),
+                child: Icon(icon, size: 19, color: context.palette.primary),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1157,16 +1185,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   style: AppTheme.latin(
                     size: 12,
                     w: FontWeight.w700,
-                    color: emphasized ? AppColors.wine : AppColors.gold,
+                    color: emphasized
+                        ? context.palette.primary
+                        : context.palette.goldText,
                     style: FontStyle.normal,
                   ),
                 ),
               ),
             ],
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 13),
-            child: Divider(height: 1, color: AppColors.line),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            child: Divider(height: 1, color: context.palette.outline),
           ),
           child,
         ],
@@ -1353,7 +1383,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final details = [
       if (visual.caption.trim().isNotEmpty) visual.caption.trim(),
       if (visual.credit.trim().isNotEmpty) visual.credit.trim(),
-      if (visual.sourcePage != null) 'Source page ${visual.sourcePage}',
     ].join(' · ');
 
     return Padding(
@@ -1366,7 +1395,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
             image: true,
             label: '$label. Open full-screen image.',
             child: Material(
-              color: AppColors.parch2,
+              color: context.palette.surfaceMuted,
               borderRadius: BorderRadius.circular(14),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
@@ -1439,16 +1468,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7E8),
+        color: context.palette.surfaceMuted,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.goldSoft, width: 1),
+        border: Border.all(color: context.palette.goldDecorative, width: 1),
       ),
       child: Text(item.translation,
           style: AppTheme.latin(
               size: 16 * scale,
               w: FontWeight.w500,
               style: FontStyle.normal,
-              color: AppColors.inkSoft)),
+              color: context.palette.inkMuted)),
     );
   }
 
@@ -1456,13 +1485,14 @@ class _ReaderScreenState extends State<ReaderScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6EAD2),
+        color: context.palette.surfaceMuted,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.goldSoft, width: 1),
+        border: Border.all(color: context.palette.goldDecorative, width: 1),
       ),
       child: Text(
         item.body,
-        style: AppTheme.geezSerif(size: 17 * scale, color: AppColors.inkSoft)
+        style: AppTheme.geezSerif(
+                size: 17 * scale, color: context.palette.inkMuted)
             .copyWith(height: 1.9),
       ),
     );
@@ -1477,7 +1507,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
             label: 'Introduction',
             icon: Icons.menu_book_outlined,
             emphasized: true,
-            child: PrayerText(item.body, scale: scale),
+            child: PrayerText(
+              item.body,
+              scale: scale,
+              highlightQuery: _highlightQuery,
+            ),
           ),
           const SizedBox(height: 12),
         ],
@@ -1493,9 +1527,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.palette.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.line, width: 1.15),
+        border: Border.all(color: context.palette.outline, width: 1.15),
         boxShadow: const [
           BoxShadow(
             color: Color(0x103C2614),
@@ -1514,8 +1548,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 width: 34,
                 height: 34,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: AppColors.wine,
+                decoration: BoxDecoration(
+                  color: context.palette.primary,
                   shape: BoxShape.circle,
                 ),
                 child: Text(
@@ -1535,7 +1569,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   style: AppTheme.geezSerif(
                     size: 17 * scale,
                     w: FontWeight.w700,
-                    color: AppColors.wine,
+                    color: context.palette.primary,
                   ).copyWith(height: 1.65),
                 ),
               ),
@@ -1552,9 +1586,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(13, 11, 13, 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF5E8D0),
+                color: context.palette.surfaceMuted,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.goldSoft),
+                border: Border.all(color: context.palette.goldDecorative),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1564,7 +1598,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     style: AppTheme.latin(
                       size: 13 * scale,
                       w: FontWeight.w700,
-                      color: AppColors.wineSoft,
+                      color: context.palette.primarySoft,
                       style: FontStyle.normal,
                     ),
                   ),
@@ -1633,7 +1667,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         const Ornament(),
         if (next != null) ...[
           Material(
-            color: AppColors.wine,
+            color: context.palette.primary,
             borderRadius: BorderRadius.circular(14),
             child: InkWell(
               borderRadius: BorderRadius.circular(14),

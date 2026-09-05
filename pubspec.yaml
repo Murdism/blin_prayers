@@ -1,7 +1,7 @@
 name: Shiwan
 description: "Blin (ብሊን) prayers, hymns and catechism in Ge'ez script — Catholic Eparchy of Keren."
 publish_to: 'none'
-version: 1.0.0+1
+version: 2.0.0+2
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -10,9 +10,10 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.2.2
-  google_fonts: ^6.2.1
 
 dev_dependencies:
+  flutter_test:
+    sdk: flutter
   flutter_lints: ^3.0.0
 
 flutter:
@@ -20,4 +21,17 @@ flutter:
   assets:
     - assets/data.json
     - assets/images/source_2026/
+    - assets/images/source_2026/provenance/
     - assets/images/way_of_cross_2025/
+  fonts:
+    - family: NotoSansEthiopic
+      fonts:
+        - asset: assets/fonts/NotoSansEthiopic.ttf
+    - family: NotoSerifEthiopic
+      fonts:
+        - asset: assets/fonts/NotoSerifEthiopic.ttf
+    - family: CormorantGaramond
+      fonts:
+        - asset: assets/fonts/CormorantGaramond.ttf
+        - asset: assets/fonts/CormorantGaramond-Italic.ttf
+          style: italic

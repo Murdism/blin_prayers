@@ -54,9 +54,9 @@ class _QuizScreenState extends State<QuizScreen> {
         Container(
           padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
           decoration: BoxDecoration(
-            color: AppColors.card,
+            color: context.palette.card,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.line, width: 1.5),
+            border: Border.all(color: context.palette.outline, width: 1.5),
           ),
           child: Column(children: [
             Text('${widget.data.quiz.length} questions',
@@ -76,7 +76,7 @@ class _QuizScreenState extends State<QuizScreen> {
               width: double.infinity,
               child: FilledButton(
                 style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.wine,
+                    backgroundColor: context.palette.primaryDark,
                     padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () => _start(widget.data.quiz),
                 child: Text('ናውክ· All topics',
@@ -122,9 +122,9 @@ class _QuizScreenState extends State<QuizScreen> {
         Container(
           padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
           decoration: BoxDecoration(
-            color: AppColors.card,
+            color: context.palette.card,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.line, width: 1.5),
+            border: Border.all(color: context.palette.outline, width: 1.5),
             boxShadow: const [
               BoxShadow(
                   color: Color(0x1F3C2614),
@@ -141,20 +141,22 @@ class _QuizScreenState extends State<QuizScreen> {
               child: LinearProgressIndicator(
                 value: (idx + 1) / pool!.length,
                 minHeight: 7,
-                backgroundColor: AppColors.parch2,
-                color: AppColors.wine,
+                backgroundColor: context.palette.surfaceMuted,
+                color: context.palette.primary,
               ),
             ),
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.parch2,
+                color: context.palette.surfaceMuted,
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(p.topic,
                   style: AppTheme.geezSerif(
-                      size: 13, w: FontWeight.w600, color: AppColors.wine)),
+                      size: 13,
+                      w: FontWeight.w600,
+                      color: context.palette.primary)),
             ),
             const SizedBox(height: 16),
             Text(p.q,
@@ -169,16 +171,16 @@ class _QuizScreenState extends State<QuizScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF6EAD2),
+                    color: context.palette.surfaceMuted,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                        color: AppColors.goldSoft,
+                        color: context.palette.goldDecorative,
                         width: 1.5,
                         style: BorderStyle.solid),
                   ),
                   child: SelectableText(p.a,
                       style: AppTheme.geezSerif(
-                              size: 17, color: AppColors.wineDeep)
+                              size: 17, color: context.palette.ink)
                           .copyWith(height: 1.8)),
                 ),
               ),
@@ -188,7 +190,7 @@ class _QuizScreenState extends State<QuizScreen> {
                 Expanded(
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.wine,
+                        backgroundColor: context.palette.primaryDark,
                         padding: const EdgeInsets.symmetric(vertical: 14)),
                     onPressed: () => setState(() => revealed = true),
                     child: Text('ቀልዒ · Reveal',
@@ -202,7 +204,7 @@ class _QuizScreenState extends State<QuizScreen> {
                 Expanded(
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.wine,
+                        backgroundColor: context.palette.primaryDark,
                         padding: const EdgeInsets.symmetric(vertical: 14)),
                     onPressed: () {
                       if (last) {
@@ -224,14 +226,17 @@ class _QuizScreenState extends State<QuizScreen> {
               const SizedBox(width: 12),
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.wine,
-                    side: const BorderSide(color: AppColors.line, width: 1.5),
+                    foregroundColor: context.palette.primary,
+                    side:
+                        BorderSide(color: context.palette.outline, width: 1.5),
                     padding: const EdgeInsets.symmetric(
                         vertical: 14, horizontal: 18)),
                 onPressed: _exit,
                 child: Text('ደምቢራ',
                     style: AppTheme.geezSerif(
-                        size: 16, w: FontWeight.w700, color: AppColors.wine)),
+                        size: 16,
+                        w: FontWeight.w700,
+                        color: context.palette.primary)),
               ),
             ]),
           ]),
@@ -245,7 +250,9 @@ class _QuizScreenState extends State<QuizScreen> {
         child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text(t,
               style: AppTheme.geezSerif(
-                  size: 22, w: FontWeight.w700, color: AppColors.wine)),
+                  size: 22,
+                  w: FontWeight.w700,
+                  color: context.palette.primary)),
           const SizedBox(width: 8),
           Padding(
             padding: const EdgeInsets.only(bottom: 2),

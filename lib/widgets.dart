@@ -11,11 +11,11 @@ class Ornament extends StatelessWidget {
     Widget rule() => Expanded(
           child: Container(
             height: 1,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(colors: [
-                Color(0x00D9C9A8),
-                AppColors.line,
-                Color(0x00D9C9A8),
+                const Color(0x00D9C9A8),
+                context.palette.outline,
+                const Color(0x00D9C9A8),
               ]),
             ),
           ),
@@ -27,7 +27,7 @@ class Ornament extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(glyph,
-              style: const TextStyle(color: AppColors.gold, fontSize: 14)),
+              style: TextStyle(color: context.palette.goldText, fontSize: 14)),
         ),
         rule(),
       ]),
@@ -41,7 +41,13 @@ class Ornament extends StatelessWidget {
 class PrayerText extends StatefulWidget {
   final String text;
   final double scale;
-  const PrayerText(this.text, {super.key, this.scale = 1.0});
+  final String highlightQuery;
+  const PrayerText(
+    this.text, {
+    super.key,
+    this.scale = 1.0,
+    this.highlightQuery = '',
+  });
 
   @override
   State<PrayerText> createState() => _PrayerTextState();
@@ -75,7 +81,8 @@ class _PrayerTextState extends State<PrayerText> {
       spans.add(TextSpan(
           text: '${rm.group(2)}${rm.group(3)}',
           style: base.copyWith(
-              color: AppColors.wineSoft, fontWeight: FontWeight.w700)));
+              color: context.palette.primarySoft,
+              fontWeight: FontWeight.w700)));
       l = l.substring(rm.end);
     } else {
       final vm = _verseRe.firstMatch(l);
@@ -84,12 +91,42 @@ class _PrayerTextState extends State<PrayerText> {
         spans.add(TextSpan(
             text: '${vm.group(2)}${vm.group(3)} ',
             style: base.copyWith(
-                color: AppColors.gold, fontWeight: FontWeight.w700)));
+                color: context.palette.goldText, fontWeight: FontWeight.w700)));
         l = l.substring(vm.end);
       }
     }
-    spans.add(TextSpan(text: l));
+    _appendHighlighted(spans, l, base);
     return spans;
+  }
+
+  void _appendHighlighted(List<InlineSpan> spans, String text, TextStyle base) {
+    final query = widget.highlightQuery.trim();
+    if (query.isEmpty) {
+      spans.add(TextSpan(text: text));
+      return;
+    }
+    final lower = text.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    var start = 0;
+    while (start < text.length) {
+      final match = lower.indexOf(lowerQuery, start);
+      if (match < 0) {
+        spans.add(TextSpan(text: text.substring(start)));
+        break;
+      }
+      if (match > start) {
+        spans.add(TextSpan(text: text.substring(start, match)));
+      }
+      spans.add(TextSpan(
+        text: text.substring(match, match + query.length),
+        style: base.copyWith(
+          backgroundColor: const Color(0x66E3C47F),
+          fontWeight: FontWeight.w700,
+        ),
+      ));
+      start = match + query.length;
+    }
+    if (text.isEmpty) spans.add(const TextSpan(text: ''));
   }
 
   List<Widget> _buildWidgets(TextStyle base) {
@@ -119,7 +156,7 @@ class _PrayerTextState extends State<PrayerText> {
           child: Text(
             line,
             style: base.copyWith(
-              color: AppColors.wine,
+              color: context.palette.primary,
               fontWeight: FontWeight.w700,
               fontSize: 17 * scale,
               height: 1.55,
@@ -134,7 +171,7 @@ class _PrayerTextState extends State<PrayerText> {
         flush();
         result.add(Text(line,
             style: base.copyWith(
-              color: AppColors.gold,
+              color: context.palette.goldText,
               fontWeight: FontWeight.w700,
               fontSize: 16 * scale,
             )));
@@ -162,7 +199,8 @@ class _PrayerTextState extends State<PrayerText> {
               const SizedBox(width: 20),
               Text(response,
                   style: base.copyWith(
-                      color: AppColors.wineSoft, fontWeight: FontWeight.w700)),
+                      color: context.palette.primarySoft,
+                      fontWeight: FontWeight.w700)),
             ],
           ));
         } else {
@@ -172,7 +210,8 @@ class _PrayerTextState extends State<PrayerText> {
             TextSpan(
                 text: response,
                 style: base.copyWith(
-                    color: AppColors.wineSoft, fontWeight: FontWeight.w700)),
+                    color: context.palette.primarySoft,
+                    fontWeight: FontWeight.w700)),
           ])));
         }
         continue;
@@ -186,7 +225,8 @@ class _PrayerTextState extends State<PrayerText> {
         buf.add(TextSpan(
             text: '${om.group(1)} ',
             style: base.copyWith(
-                color: AppColors.wineSoft, fontWeight: FontWeight.w700)));
+                color: context.palette.primarySoft,
+                fontWeight: FontWeight.w700)));
         buf.addAll(_lineSpans(line.substring(om.end), base));
         continue;
       }
@@ -202,8 +242,10 @@ class _PrayerTextState extends State<PrayerText> {
 
   @override
   Widget build(BuildContext context) {
-    final base =
-        AppTheme.geezSerif(size: 18 * widget.scale).copyWith(height: 1.95);
+    final base = AppTheme.geezSerif(
+      size: 18 * widget.scale,
+      color: context.palette.ink,
+    ).copyWith(height: 1.95);
     return SelectableRegion(
       focusNode: _focusNode,
       selectionControls: materialTextSelectionControls,
@@ -238,7 +280,7 @@ class ItemRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: AppColors.card,
+        color: context.palette.card,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
@@ -247,7 +289,7 @@ class ItemRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.line, width: 1.5),
+              border: Border.all(color: context.palette.outline, width: 1.5),
             ),
             child: Row(children: [
               Container(
@@ -255,7 +297,7 @@ class ItemRow extends StatelessWidget {
                 height: 36,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.wine,
+                  color: context.palette.primaryDark,
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Text(leading,
@@ -273,7 +315,9 @@ class ItemRow extends StatelessWidget {
                         ? RichText(
                             text: TextSpan(
                                 style: AppTheme.geezSerif(
-                                    size: 16.5, w: FontWeight.w700),
+                                    size: 16.5,
+                                    w: FontWeight.w700,
+                                    color: context.palette.ink),
                                 children: titleSpans),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -290,7 +334,7 @@ class ItemRow extends StatelessWidget {
                             style: AppTheme.geezSans(
                                 size: 12.5,
                                 w: FontWeight.w400,
-                                color: AppColors.inkSoft),
+                                color: context.palette.inkMuted),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis),
                       ),
@@ -298,14 +342,14 @@ class ItemRow extends StatelessWidget {
                 ),
               ),
               if (fav)
-                const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child:
-                      Icon(Icons.star_rounded, color: AppColors.gold, size: 20),
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Icon(Icons.star_rounded,
+                      color: context.palette.goldText, size: 20),
                 ),
               const SizedBox(width: 3),
-              const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.wineSoft, size: 21),
+              Icon(Icons.chevron_right_rounded,
+                  color: context.palette.primarySoft, size: 21),
             ]),
           ),
         ),
@@ -338,10 +382,10 @@ class CollectionHero extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.wine, AppColors.wineDeep],
+          colors: [context.palette.primaryDark, const Color(0xFF321015)],
         ),
         borderRadius: BorderRadius.circular(22),
         boxShadow: const [
@@ -474,9 +518,9 @@ class PrayerGroupPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.palette.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.line, width: 1.2),
+        border: Border.all(color: context.palette.outline, width: 1.2),
         boxShadow: const [
           BoxShadow(
             color: Color(0x123C2614),
@@ -491,11 +535,12 @@ class PrayerGroupPanel extends StatelessWidget {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 15, 16, 14),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFFF5E4C4), Color(0xFFFAF1DF)],
+                colors: [context.palette.surfaceMuted, context.palette.card],
               ),
-              border: Border(bottom: BorderSide(color: AppColors.line)),
+              border:
+                  Border(bottom: BorderSide(color: context.palette.outline)),
             ),
             child: Row(
               children: [
@@ -503,7 +548,7 @@ class PrayerGroupPanel extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: AppColors.wine,
+                    color: context.palette.primaryDark,
                     borderRadius: BorderRadius.circular(13),
                   ),
                   child: Icon(icon, size: 23, color: const Color(0xFFF5DFAC)),
@@ -518,7 +563,7 @@ class PrayerGroupPanel extends StatelessWidget {
                         style: AppTheme.geezSerif(
                           size: 19,
                           w: FontWeight.w700,
-                          color: AppColors.wine,
+                          color: context.palette.primary,
                         ),
                       ),
                       Text(
@@ -547,9 +592,9 @@ class PrayerGroupPanel extends StatelessWidget {
           ),
           for (var index = 0; index < items.length; index++) ...[
             if (index > 0)
-              const Padding(
-                padding: EdgeInsets.only(left: 68),
-                child: Divider(height: 1, color: AppColors.line),
+              Padding(
+                padding: const EdgeInsets.only(left: 68),
+                child: Divider(height: 1, color: context.palette.outline),
               ),
             _PrayerPanelRow(
               item: items[index],
@@ -595,10 +640,11 @@ class _PrayerPanelRow extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF2E4CA),
+                    color: context.palette.surfaceMuted,
                     borderRadius: BorderRadius.circular(11),
                   ),
-                  child: Icon(icon, size: 19, color: AppColors.wineSoft),
+                  child:
+                      Icon(icon, size: 19, color: context.palette.primarySoft),
                 ),
                 const SizedBox(width: 13),
                 Expanded(
@@ -627,11 +673,11 @@ class _PrayerPanelRow extends StatelessWidget {
                   ),
                 ),
                 if (favorite)
-                  const Icon(Icons.star_rounded,
-                      color: AppColors.gold, size: 19),
+                  Icon(Icons.star_rounded,
+                      color: context.palette.goldText, size: 19),
                 const SizedBox(width: 3),
-                const Icon(Icons.chevron_right_rounded,
-                    color: AppColors.wineSoft),
+                Icon(Icons.chevron_right_rounded,
+                    color: context.palette.primarySoft),
               ],
             ),
           ),
@@ -659,7 +705,7 @@ class TileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.card,
+      color: context.palette.card,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -668,7 +714,7 @@ class TileCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.line, width: 1.5),
+            border: Border.all(color: context.palette.outline, width: 1.5),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -681,7 +727,7 @@ class TileCard extends StatelessWidget {
                         style: AppTheme.latin(
                             size: 12.5,
                             w: FontWeight.w700,
-                            color: AppColors.wineSoft,
+                            color: context.palette.primarySoft,
                             style: FontStyle.normal)),
                   ),
                   if (icon != null)
@@ -689,10 +735,11 @@ class TileCard extends StatelessWidget {
                       width: 33,
                       height: 33,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF1E2C5),
+                        color: context.palette.surfaceMuted,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(icon, size: 18, color: AppColors.wine),
+                      child:
+                          Icon(icon, size: 18, color: context.palette.primary),
                     ),
                 ],
               ),
@@ -705,7 +752,7 @@ class TileCard extends StatelessWidget {
                     style: AppTheme.geezSans(
                         size: 12.5,
                         w: FontWeight.w400,
-                        color: AppColors.inkSoft),
+                        color: context.palette.inkMuted),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis),
               ],
@@ -728,20 +775,22 @@ class NotePanel extends StatelessWidget {
       margin: const EdgeInsets.only(top: 4, bottom: 14),
       padding: const EdgeInsets.fromLTRB(14, 11, 14, 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6EAD2),
+        color: context.palette.surfaceMuted,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.goldSoft, width: 1.2),
+        border: Border.all(color: context.palette.goldDecorative, width: 1.2),
       ),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 1, right: 9),
+        Padding(
+          padding: const EdgeInsets.only(top: 1, right: 9),
           child: Icon(Icons.translate_rounded,
-              size: 17, color: AppColors.wineSoft),
+              size: 17, color: context.palette.primarySoft),
         ),
         Expanded(
           child: Text(note,
               style: AppTheme.latin(
-                  size: 15.5, w: FontWeight.w500, color: AppColors.inkSoft)),
+                  size: 15.5,
+                  w: FontWeight.w500,
+                  color: context.palette.inkMuted)),
         ),
       ]),
     );
@@ -771,7 +820,10 @@ class _HymnBodyState extends State<HymnBody> {
   Widget build(BuildContext context) {
     final item = widget.item;
     final s = widget.scale;
-    final base = AppTheme.geezSerif(size: 17 * s).copyWith(height: 1.9);
+    final base = AppTheme.geezSerif(
+      size: 17 * s,
+      color: context.palette.ink,
+    ).copyWith(height: 1.9);
 
     return SelectableRegion(
       focusNode: _focusNode,
@@ -799,17 +851,17 @@ class _HymnBodyState extends State<HymnBody> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3CD),
+        color: context.palette.surfaceMuted,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFFFCA2C), width: 1),
+        border: Border.all(color: context.palette.goldDecorative, width: 1),
       ),
       child: Row(children: [
-        const Icon(Icons.warning_amber_rounded,
-            size: 14, color: Color(0xFFB07D00)),
+        Icon(Icons.warning_amber_rounded,
+            size: 14, color: context.palette.goldText),
         const SizedBox(width: 7),
         Text('Verse splits need review',
-            style:
-                AppTheme.latin(size: 12.5 * s, color: const Color(0xFF7A5500))),
+            style: AppTheme.latin(
+                size: 12.5 * s, color: context.palette.goldText)),
       ]),
     );
   }
@@ -818,17 +870,17 @@ class _HymnBodyState extends State<HymnBody> {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3E8D0),
+        color: context.palette.surfaceMuted,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.goldSoft, width: 1),
+        border: Border.all(color: context.palette.goldDecorative, width: 1),
       ),
       child: IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Container(
             width: 5,
-            decoration: const BoxDecoration(
-              color: AppColors.wine,
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: context.palette.primaryDark,
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 bottomLeft: Radius.circular(12),
               ),
@@ -845,19 +897,20 @@ class _HymnBodyState extends State<HymnBody> {
                         style: AppTheme.geezSerif(
                             size: 12 * s,
                             w: FontWeight.w700,
-                            color: AppColors.wine)),
+                            color: context.palette.primary)),
                     const SizedBox(width: 6),
                     Text('· Refrain',
                         style: AppTheme.latin(
                             size: 11 * s,
                             w: FontWeight.w600,
-                            color: AppColors.wineSoft)),
+                            color: context.palette.primarySoft)),
                   ]),
                   const SizedBox(height: 6),
                   Text(refrain,
                       style: base.copyWith(
                           fontStyle: FontStyle.italic,
-                          color: AppColors.wine.withValues(alpha: 0.85))),
+                          color:
+                              context.palette.primary.withValues(alpha: 0.85))),
                 ],
               ),
             ),
@@ -875,7 +928,9 @@ class _HymnBodyState extends State<HymnBody> {
           width: 30,
           child: Text('$num.',
               style: AppTheme.latin(
-                  size: 13 * s, w: FontWeight.w700, color: AppColors.gold)),
+                  size: 13 * s,
+                  w: FontWeight.w700,
+                  color: context.palette.goldText)),
         ),
         Expanded(child: Text(verse, style: base)),
       ]),

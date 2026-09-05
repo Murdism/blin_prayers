@@ -5,8 +5,9 @@ import 'theme.dart';
 import 'widgets.dart';
 import 'reader_screen.dart';
 import 'quiz_screen.dart';
-import 'divine_mercy_widgets.dart';
-import 'way_of_cross_widgets.dart';
+import 'prayer_collection_screen.dart';
+import 'sources_screen.dart';
+import 'version.dart';
 
 void main() {
   runApp(const BlinApp());
@@ -41,27 +42,36 @@ class _BlinAppState extends State<BlinApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: "ሺዋን",
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.theme(),
-      home: error != null
-          ? Scaffold(
-              body: Center(
-                  child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text('Failed to load data:\n$error',
-                  textAlign: TextAlign.center),
-            )))
-          : data == null
-              ? const Scaffold(
-                  backgroundColor: AppColors.wine,
-                  body: Center(
-                      child: Text('☩',
-                          style: TextStyle(
-                              fontSize: 64, color: Color(0xFFCDA85A)))),
-                )
-              : HomeShell(data: data!, store: store),
+    return AnimatedBuilder(
+      animation: store,
+      builder: (context, _) => MaterialApp(
+        title: "ሺዋን",
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.theme(dark: false),
+        darkTheme: AppTheme.theme(dark: true),
+        themeMode: switch (store.appearance) {
+          'parchment' => ThemeMode.light,
+          'night' => ThemeMode.dark,
+          _ => ThemeMode.system,
+        },
+        home: error != null
+            ? Scaffold(
+                body: Center(
+                    child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text('Failed to load data:\n$error',
+                    textAlign: TextAlign.center),
+              )))
+            : data == null
+                ? const Scaffold(
+                    backgroundColor: AppColors.wine,
+                    body: Center(
+                        child: Text('☩',
+                            style: TextStyle(
+                                fontSize: 64, color: Color(0xFFCDA85A)))),
+                  )
+                : HomeShell(data: data!, store: store),
+      ),
     );
   }
 }
@@ -78,7 +88,10 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int tab = 0;
   final _searchCtrl = TextEditingController();
+  final _searchFocus = FocusNode();
   String query = '';
+  String searchScope = 'all';
+  bool searchOpen = false;
 
   // bottom tabs
   static const _tabs = [
@@ -86,24 +99,39 @@ class _HomeShellState extends State<HomeShell> {
     (icon: Icons.menu_book_rounded, label: 'ሺዋን'),
     (icon: Icons.school_rounded, label: 'ምህሮ'),
     (icon: Icons.music_note_rounded, label: 'መዛሙር'),
-    (icon: Icons.star_rounded, label: 'Favorites'),
   ];
 
-  void _openItem(Item it) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) =>
-          ReaderScreen(data: widget.data, store: widget.store, itemId: it.id),
-    ));
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _searchFocus.dispose();
+    super.dispose();
   }
 
-  void _openMercy(Item item, int stage) {
+  void _openItem(Item it, {String? highlightQuery}) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ReaderScreen(
         data: widget.data,
         store: widget.store,
-        itemId: item.id,
-        initialMercyStage: stage,
+        itemId: it.id,
+        initialQuery: highlightQuery,
       ),
+    ));
+  }
+
+  void _openGroup(String groupId) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => PrayerCollectionScreen(
+        data: widget.data,
+        store: widget.store,
+        groupId: groupId,
+      ),
+    ));
+  }
+
+  void _openSources() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => SourcesScreen(data: widget.data),
     ));
   }
 
@@ -113,7 +141,12 @@ class _HomeShellState extends State<HomeShell> {
       appBar: _appBar(),
       body: SafeArea(
         top: false,
-        child: query.trim().isNotEmpty ? _searchView() : _bodyForTab(),
+        child: query.trim().isNotEmpty
+            ? _searchView()
+            : IndexedStack(
+                index: tab,
+                children: [_home(), _prayersHub(), _catechism(), _hymns()],
+              ),
       ),
       bottomNavigationBar: _bottomBar(),
     );
@@ -121,7 +154,7 @@ class _HomeShellState extends State<HomeShell> {
 
   PreferredSizeWidget _appBar() {
     return AppBar(
-      backgroundColor: AppColors.wine,
+      backgroundColor: context.palette.primaryDark,
       foregroundColor: const Color(0xFFF7ECD6),
       elevation: 2,
       titleSpacing: 14,
@@ -133,10 +166,12 @@ class _HomeShellState extends State<HomeShell> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: const Color(0x22000000),
-            border: Border.all(color: AppColors.goldSoft, width: 1.4),
+            border:
+                Border.all(color: context.palette.goldDecorative, width: 1.4),
           ),
-          child: const Text('✝',
-              style: TextStyle(color: AppColors.goldSoft, fontSize: 19)),
+          child: Text('✝',
+              style: TextStyle(
+                  color: context.palette.goldDecorative, fontSize: 19)),
         ),
         const SizedBox(width: 11),
         Expanded(
@@ -158,71 +193,90 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ),
         IconButton(
+          tooltip: 'ጠፍሕ · Search',
+          onPressed: () {
+            setState(() => searchOpen = !searchOpen);
+            if (searchOpen) {
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => _searchFocus.requestFocus(),
+              );
+            } else {
+              _searchCtrl.clear();
+              query = '';
+            }
+          },
+          icon: Icon(searchOpen ? Icons.close_rounded : Icons.search_rounded),
+        ),
+        IconButton(
           tooltip: 'Settings',
           onPressed: _openSettings,
           icon: const Icon(Icons.tune_rounded),
         ),
       ]),
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(58),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-          child: Material(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(14),
-            child: TextField(
-              controller: _searchCtrl,
-              onChanged: (v) => setState(() => query = v),
-              style: AppTheme.geezSans(size: 15.5, w: FontWeight.w400),
-              decoration: InputDecoration(
-                hintText: 'ጠፍሕ… search prayers, hymns, catechism',
-                hintStyle: AppTheme.geezSans(
-                    size: 14.5,
-                    w: FontWeight.w400,
-                    color: const Color(0xFFA99A82)),
-                prefixIcon:
-                    const Icon(Icons.search_rounded, color: AppColors.wineSoft),
-                suffixIcon: query.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.close_rounded,
-                            color: Color(0xFFB3A387)),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          setState(() => query = '');
-                        },
+      bottom: searchOpen
+          ? PreferredSize(
+              preferredSize: const Size.fromHeight(58),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                child: Material(
+                  color: context.palette.card,
+                  borderRadius: BorderRadius.circular(14),
+                  child: TextField(
+                    controller: _searchCtrl,
+                    focusNode: _searchFocus,
+                    onChanged: (v) => setState(() => query = v),
+                    style: AppTheme.geezSans(size: 15.5, w: FontWeight.w400),
+                    decoration: InputDecoration(
+                      hintText: 'ጠፍሕ… ሺዋን፣ ምህሮ፣ መዛሙር',
+                      hintStyle: AppTheme.geezSans(
+                          size: 14.5,
+                          w: FontWeight.w400,
+                          color: const Color(0xFFA99A82)),
+                      prefixIcon: Icon(Icons.search_rounded,
+                          color: context.palette.primarySoft),
+                      suffixIcon: query.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.backspace_outlined,
+                                  color: Color(0xFFB3A387)),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                setState(() => query = '');
+                                _searchFocus.requestFocus();
+                              },
+                            ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                            color: context.palette.outline, width: 1.5),
                       ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      const BorderSide(color: AppColors.line, width: 1.5),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                            color: context.palette.outline, width: 1.5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                            color: context.palette.goldDecorative, width: 1.8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                      filled: true,
+                      fillColor: context.palette.card,
+                    ),
+                  ),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      const BorderSide(color: AppColors.line, width: 1.5),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      const BorderSide(color: AppColors.goldSoft, width: 1.8),
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                filled: true,
-                fillColor: AppColors.card,
               ),
-            ),
-          ),
-        ),
-      ),
+            )
+          : null,
     );
   }
 
   Widget _bottomBar() {
     return NavigationBarTheme(
       data: NavigationBarThemeData(
-        backgroundColor: AppColors.card,
-        indicatorColor: AppColors.parch2,
+        backgroundColor: context.palette.card,
+        indicatorColor: context.palette.surfaceMuted,
         labelTextStyle: WidgetStatePropertyAll(
             AppTheme.geezSans(size: 11.5, w: FontWeight.w600)),
       ),
@@ -232,124 +286,365 @@ class _HomeShellState extends State<HomeShell> {
         onDestinationSelected: (i) => setState(() {
           tab = i;
           query = '';
+          searchOpen = false;
+          searchScope = 'all';
           _searchCtrl.clear();
         }),
         destinations: [
           for (final t in _tabs)
             NavigationDestination(
-                icon: Icon(t.icon, color: AppColors.inkSoft),
-                selectedIcon: Icon(t.icon, color: AppColors.wine),
+                icon: Icon(t.icon, color: context.palette.inkMuted),
+                selectedIcon: Icon(t.icon, color: context.palette.primary),
                 label: t.label),
         ],
       ),
     );
   }
 
-  Widget _bodyForTab() {
-    switch (tab) {
-      case 0:
-        return _home();
-      case 1:
-        return _prayersHub();
-      case 2:
-        return _catechism();
-      case 3:
-        return _hymns();
-      case 4:
-        return _favorites();
-      default:
-        return _home();
-    }
-  }
-
   // ---------------- HOME ----------------
   Widget _home() {
-    final cards = [
-      (
-        tab: 1,
-        k: 'Prayers',
-        t: 'ሺዋን',
-        d: 'Daily prayers, Creed, Rosary, Divine Mercy, Way of the Cross & more',
-        icon: Icons.auto_stories_rounded,
-      ),
-      (
-        tab: 2,
-        k: 'Catechism',
-        t: 'ምህሮ ክርስቶስ',
-        d: '${widget.data.quiz.length} questions across ${widget.data.catechism.length} topics — for First Communion',
-        icon: Icons.school_rounded,
-      ),
-      (
-        tab: 3,
-        k: 'Hymns',
-        t: 'መዛሙር ብሊነው',
-        d: '${widget.data.hymns.length} Blin hymns & songs',
-        icon: Icons.music_note_rounded,
-      ),
-      (
-        tab: -1,
-        k: 'Quiz',
-        t: 'ፈተና',
-        d: 'Flashcard quiz mode for children',
-        icon: Icons.psychology_alt_rounded,
-      ),
+    return AnimatedBuilder(
+      animation: widget.store,
+      builder: (context, _) => _homeContent(),
+    );
+  }
+
+  Widget _homeContent() {
+    final last = widget.data.byId(widget.store.lastItemId ?? '');
+    final favorites = widget.data.items
+        .where((item) => widget.store.isFav(item.id))
+        .take(4)
+        .toList();
+    final recent = widget.store.recentIds
+        .map(widget.data.byId)
+        .whereType<Item>()
+        .where((item) => item.id != last?.id)
+        .take(4)
+        .toList();
+    final quickIds = [
+      'p_daily_blin',
+      'p_rosary_open',
+      'p_mercy',
+      'p_wayofcross',
     ];
+    final quickItems =
+        quickIds.map(widget.data.byId).whereType<Item>().toList();
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 30),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 34),
       children: [
         _hero(),
-        const Ornament(),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.18,
-          children: [
-            for (final c in cards)
-              TileCard(
-                kicker: c.k,
-                title: c.t,
-                desc: c.d,
-                icon: c.icon,
-                onTap: () {
-                  if (c.tab == -1) {
-                    Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => Scaffold(
-                              appBar: AppBar(
-                                backgroundColor: AppColors.wine,
-                                foregroundColor: const Color(0xFFF7ECD6),
-                                title: Text('ፈተና',
-                                    style: AppTheme.geezSerif(
-                                        size: 18,
-                                        w: FontWeight.w700,
-                                        color: const Color(0xFFF7ECD6))),
-                              ),
-                              body: QuizScreen(data: widget.data),
-                            )));
-                  } else {
-                    setState(() => tab = c.tab);
-                  }
-                },
+        if (last != null) ...[
+          const SizedBox(height: 18),
+          _continueCard(last),
+        ],
+        const SizedBox(height: 22),
+        _homeUtilityHeading(
+          icon: Icons.bolt_rounded,
+          label: 'Quick prayer',
+        ),
+        const SizedBox(height: 10),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth >= 520 ? 2 : 1;
+            final systemScale = MediaQuery.textScalerOf(context).scale(16) / 16;
+            // Ethiopic fonts have taller line metrics than the Latin fallback.
+            // Leave enough room for two title lines and the description at the
+            // default scale, then grow the tile for accessibility text sizes.
+            final height = (166 + (systemScale - 1) * 76).clamp(166, 260);
+            return GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                mainAxisSpacing: 11,
+                crossAxisSpacing: 11,
+                mainAxisExtent: height.toDouble(),
               ),
+              itemCount: quickItems.length,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemBuilder: (context, index) {
+                final item = quickItems[index];
+                return TileCard(
+                  kicker: item.groupEn,
+                  title: item.title,
+                  desc: item.sub,
+                  icon: _quickIcon(item.group),
+                  onTap: () => _openItem(item),
+                );
+              },
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+        _homeUtilityHeading(
+          icon: Icons.star_rounded,
+          label: 'Favorites',
+          onTap: () => _showFavorites(favorites),
+        ),
+        const SizedBox(height: 8),
+        if (favorites.isEmpty)
+          _emptyHomePanel(
+            Icons.star_border_rounded,
+            'No favorites yet.',
+            'Use the star while reading to keep prayers here.',
+          )
+        else
+          for (final item in favorites)
+            ItemRow(
+              leading: '★',
+              title: item.title,
+              sub: item.groupTitle,
+              fav: true,
+              onTap: () => _openItem(item),
+            ),
+        if (recent.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _homeUtilityHeading(
+            icon: Icons.history_rounded,
+            label: 'Recently opened',
+          ),
+          const SizedBox(height: 9),
+          for (final item in recent)
+            ItemRow(
+              leading: '↺',
+              title: item.title,
+              sub: item.groupTitle,
+              onTap: () => _openItem(item),
+            ),
+        ],
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _openQuiz,
+                icon: const Icon(Icons.psychology_alt_rounded),
+                label: const Text('ፈተና · Quiz'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _openSources,
+                icon: const Icon(Icons.info_outline_rounded),
+                label: const Text('ምንጪታት · Sources'),
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
+  IconData _quickIcon(String group) => switch (group) {
+        'daily' => Icons.wb_sunny_outlined,
+        'rosary' => Icons.blur_circular_rounded,
+        'mercy' => Icons.favorite_rounded,
+        'way' => Icons.add_rounded,
+        _ => Icons.auto_stories_rounded,
+      };
+
+  Widget _homeUtilityHeading({
+    required IconData icon,
+    required String label,
+    VoidCallback? onTap,
+  }) {
+    final labelWidget = Text(
+      label,
+      style: AppTheme.latin(
+        size: 14,
+        w: FontWeight.w700,
+        color: context.palette.inkMuted,
+        style: FontStyle.normal,
+      ),
+    );
+    return Row(
+      children: [
+        Icon(icon, color: context.palette.goldText, size: 24),
+        const Spacer(),
+        if (onTap == null)
+          labelWidget
+        else
+          TextButton.icon(
+            onPressed: onTap,
+            label: labelWidget,
+            iconAlignment: IconAlignment.end,
+            icon: const Icon(Icons.chevron_right_rounded, size: 18),
+          ),
+      ],
+    );
+  }
+
+  Widget _continueCard(Item item) {
+    final complete = widget.store.isCompleted(item.id);
+    return Material(
+      color: context.palette.primaryDark,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => _openItem(item),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 12, 16),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: const Color(0x22FFFFFF),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(
+                  complete ? Icons.replay_rounded : Icons.play_arrow_rounded,
+                  color: const Color(0xFFF5DDAA),
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      complete ? 'ኰዶ ተርሲ · Pray again' : 'ቀጽሊ · Continue',
+                      style: AppTheme.geezSans(
+                        size: 12.5,
+                        w: FontWeight.w700,
+                        color: const Color(0xFFE9CB8D),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.geezSerif(
+                        size: 18,
+                        w: FontWeight.w700,
+                        color: const Color(0xFFFFF4DF),
+                      ),
+                    ),
+                    Text(
+                      item.groupTitle,
+                      style: AppTheme.geezSans(
+                        size: 12.5,
+                        color: const Color(0xDDF7ECD6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Start again',
+                onPressed: () {
+                  widget.store.resetReading(item.id);
+                  _openItem(item);
+                },
+                icon: const Icon(Icons.restart_alt_rounded,
+                    color: Color(0xFFF7ECD6)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyHomePanel(IconData icon, String title, String subtitle) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: context.palette.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.palette.outline),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: context.palette.goldText, size: 30),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: AppTheme.geezSans(size: 15, w: FontWeight.w700)),
+                Text(subtitle, style: AppTheme.geezSans(size: 13.5)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFavorites(List<Item> favorites) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.palette.background,
+      builder: (sheetContext) => SafeArea(
+        child: FractionallySizedBox(
+          heightFactor: 0.78,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 26),
+            children: [
+              Text('Favorites',
+                  style: AppTheme.latin(
+                      size: 23,
+                      w: FontWeight.w700,
+                      color: context.palette.primary,
+                      style: FontStyle.normal)),
+              const SizedBox(height: 14),
+              if (favorites.isEmpty)
+                _emptyHomePanel(Icons.star_border_rounded, 'No favorites yet.',
+                    'Use the star while reading to keep prayers here.')
+              else
+                for (final item in widget.data.items
+                    .where((entry) => widget.store.isFav(entry.id)))
+                  ItemRow(
+                    leading: '★',
+                    title: item.title,
+                    sub: item.groupTitle,
+                    fav: true,
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      _openItem(item);
+                    },
+                  ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openQuiz() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(
+          backgroundColor: context.palette.primaryDark,
+          foregroundColor: const Color(0xFFF7ECD6),
+          title: Text('ፈተና',
+              style: AppTheme.geezSerif(
+                  size: 18,
+                  w: FontWeight.w700,
+                  color: const Color(0xFFF7ECD6))),
+        ),
+        body: QuizScreen(data: widget.data),
+      ),
+    ));
+  }
+
   Widget _hero() {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.wine, AppColors.wineDeep],
+          colors: [context.palette.primaryDark, const Color(0xFF321015)],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.goldSoft, width: 1.5),
+        border: Border.all(color: context.palette.goldDecorative, width: 1.5),
         boxShadow: const [
           BoxShadow(
               color: Color(0x387A1F2B), blurRadius: 26, offset: Offset(0, 10)),
@@ -368,15 +663,6 @@ class _HomeShellState extends State<HomeShell> {
                   size: 30,
                   w: FontWeight.w700,
                   color: const Color(0xFFF7ECD6))),
-          const SizedBox(height: 2),
-          Text(widget.data.subtitle,
-              style: AppTheme.latin(size: 17, color: const Color(0xD9F7ECD6))),
-          const SizedBox(height: 12),
-          Text(widget.data.language,
-              style: AppTheme.geezSans(
-                  size: 12.5,
-                  w: FontWeight.w400,
-                  color: const Color(0xB3F7ECD6))),
         ]),
       ]),
     );
@@ -384,9 +670,15 @@ class _HomeShellState extends State<HomeShell> {
 
   // ---------------- PRAYERS HUB ----------------
   Widget _prayersHub() {
-    final groups = widget.data.groupMeta.entries
-        .where((e) => e.key != 'cat' && e.key != 'hymns')
-        .toList();
+    const order = [
+      'daily',
+      'rosary',
+      'mercy',
+      'way',
+      'confession',
+      'faith',
+      'meals',
+    ];
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
       children: [
@@ -401,68 +693,79 @@ class _HomeShellState extends State<HomeShell> {
               '${widget.data.items.where((item) => item.group != 'cat' && item.group != 'hymns').length} sections',
         ),
         const SizedBox(height: 22),
-        for (final g in groups) ...[
-          if (g.key == 'way')
-            WayOfCrossJourney(
-              items: widget.data.itemsInGroup(g.key),
-              isFavorite: widget.store.isFav,
-              onOpen: _openItem,
-            )
-          else if (g.key == 'mercy')
-            DivineMercyJourney(
-              item: widget.data.itemsInGroup(g.key).first,
-              favorite: widget.store.isFav(
-                widget.data.itemsInGroup(g.key).first.id,
-              ),
-              onOpen: _openMercy,
-            )
-          else
-            PrayerGroupPanel(
-              title: g.value.title,
-              subtitle: g.value.en,
-              description: _groupPresentation(g.key).description,
-              icon: _groupPresentation(g.key).icon,
-              items: widget.data.itemsInGroup(g.key),
-              isFavorite: widget.store.isFav,
-              onOpen: _openItem,
-            ),
-          const SizedBox(height: 18),
+        _sectionHeading('ሺዋን ክፍሊታት', 'Prayer collections'),
+        const SizedBox(height: 11),
+        for (final groupId in order) ...[
+          _collectionEntry(groupId),
+          const SizedBox(height: 11),
         ],
       ],
     );
   }
 
-  ({IconData icon, String description}) _groupPresentation(String group) {
-    return switch (group) {
-      'daily' => (
-          icon: Icons.wb_sunny_outlined,
-          description: 'Foundational prayers for the rhythm of every day.'
-        ),
-      'faith' => (
-          icon: Icons.shield_outlined,
-          description: 'The Creed and acts of hope, charity, and contrition.'
-        ),
-      'confession' => (
-          icon: Icons.church_outlined,
-          description: 'Preparation and prayer for Confession and Communion.'
-        ),
-      'rosary' => (
-          icon: Icons.blur_circular_rounded,
-          description: 'Opening prayers, mysteries, and the Marian litany.'
-        ),
-      'mercy' => (
-          icon: Icons.favorite_border_rounded,
-          description: 'The complete Chaplet of Divine Mercy and its litany.'
-        ),
-      'meals' => (
-          icon: Icons.restaurant_rounded,
-          description: 'Blessings before and after the family table.'
-        ),
-      _ => (
-          icon: Icons.auto_stories_outlined,
-          description: 'Prayers and devotional reading.'
-        ),
+  Widget _collectionEntry(String groupId) {
+    final meta = widget.data.groupMeta[groupId]!;
+    final presentation = prayerGroupPresentation(groupId);
+    final count = widget.data.itemsInGroup(groupId).length;
+    final countLabel = groupId == 'rosary'
+        ? '2 prayer areas'
+        : '$count ${count == 1 ? 'section' : 'sections'}';
+    final accent = switch (groupId) {
+      'rosary' => const Color(0xFF315F8D),
+      'mercy' => const Color(0xFF9F2638),
+      'way' => const Color(0xFF57151D),
+      _ => context.palette.primaryDark,
     };
+    return Material(
+      color: context.palette.card,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _openGroup(groupId),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(15, 14, 12, 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: context.palette.outline, width: 1.2),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(presentation.icon,
+                    color: const Color(0xFFF7E5B9), size: 25),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(meta.title,
+                        style:
+                            AppTheme.geezSerif(size: 18, w: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${meta.en} · $countLabel',
+                      style: AppTheme.geezSans(
+                          size: 13.5,
+                          w: FontWeight.w500,
+                          color: context.palette.inkMuted),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded,
+                  color: context.palette.primarySoft),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // ---------------- CATECHISM ----------------
@@ -493,43 +796,21 @@ class _HomeShellState extends State<HomeShell> {
             fav: widget.store.isFav(widget.data.catechismItems[index].id),
             onTap: () => _openItem(widget.data.catechismItems[index]),
           ),
-        const Ornament(glyph: '✝'),
-        Padding(
-          padding: const EdgeInsets.only(left: 2, bottom: 10),
-          child: Text('ሥቱራን · Sacraments',
-              style: AppTheme.geezSerif(
-                  size: 16, w: FontWeight.w700, color: AppColors.wine)),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () => _openGroup('confession'),
+          icon: const Icon(Icons.church_outlined),
+          label: const Text('ንስሒዅ · Confession & Communion prayers'),
         ),
-        for (final it
-            in widget.data.items.where((x) => x.group == 'confession'))
-          ItemRow(
-            leading: '✝',
-            title: it.title,
-            sub: it.note.isNotEmpty ? it.note : it.sub,
-            fav: widget.store.isFav(it.id),
-            onTap: () => _openItem(it),
-          ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
             style: FilledButton.styleFrom(
-                backgroundColor: AppColors.wine,
+                backgroundColor: context.palette.primaryDark,
                 padding: const EdgeInsets.symmetric(vertical: 14)),
             onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => Scaffold(
-                        appBar: AppBar(
-                          backgroundColor: AppColors.wine,
-                          foregroundColor: const Color(0xFFF7ECD6),
-                          title: Text('ፈተና',
-                              style: AppTheme.geezSerif(
-                                  size: 18,
-                                  w: FontWeight.w700,
-                                  color: const Color(0xFFF7ECD6))),
-                        ),
-                        body: QuizScreen(data: widget.data),
-                      )));
+              _openQuiz();
             },
             icon: const Icon(Icons.school_rounded, color: Color(0xFFF7ECD6)),
             label: Text('ፈተና ተርሲ · Start Quiz',
@@ -572,67 +853,19 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
-  // ---------------- FAVORITES ----------------
-  Widget _favorites() {
-    return AnimatedBuilder(
-      animation: widget.store,
-      builder: (context, _) {
-        final favs =
-            widget.data.items.where((i) => widget.store.isFav(i.id)).toList();
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
-          children: [
-            CollectionHero(
-              eyebrow: 'Your collection',
-              title: 'Favorites ★',
-              subtitle: 'Saved for quick access',
-              description:
-                  'The prayers, catechism topics, and hymns you have marked for later.',
-              icon: Icons.star_rounded,
-              badge: '${favs.length} saved',
-            ),
-            const SizedBox(height: 18),
-            if (favs.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 50),
-                child: Column(children: [
-                  const Icon(Icons.star_border_rounded,
-                      size: 54, color: AppColors.line),
-                  const SizedBox(height: 12),
-                  Text('No favorites yet.', style: AppTheme.latin(size: 18)),
-                  const SizedBox(height: 6),
-                  Text(
-                      'Tap the star ☆ while reading to save a prayer or hymn here.',
-                      textAlign: TextAlign.center,
-                      style: AppTheme.latin(size: 15)),
-                ]),
-              )
-            else
-              for (final it in favs)
-                ItemRow(
-                  leading: it.num?.toString() ??
-                      (it.kind == 'hymn'
-                          ? '♪'
-                          : it.kind == 'catechism'
-                              ? '✝'
-                              : '☩'),
-                  title: it.title,
-                  sub: it.sub,
-                  fav: true,
-                  onTap: () => _openItem(it),
-                ),
-          ],
-        );
-      },
-    );
-  }
-
   // ---------------- SEARCH ----------------
   Widget _searchView() {
     final q = query.trim();
     final ql = q.toLowerCase();
     final results = <(Item, String)>[];
     for (final it in widget.data.items) {
+      final inScope = switch (searchScope) {
+        'prayers' => it.kind == 'prayer' || it.kind == 'rubric',
+        'catechism' => it.kind == 'catechism',
+        'hymns' => it.kind == 'hymn',
+        _ => true,
+      };
+      if (!inScope) continue;
       final hay = it.haystack;
       final inTitle = it.title.contains(q);
       final hit = hay.contains(q) || hay.toLowerCase().contains(ql) || inTitle;
@@ -666,6 +899,27 @@ class _HomeShellState extends State<HomeShell> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 30),
       children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final filter in const [
+                (id: 'all', label: 'ናድካ · All'),
+                (id: 'prayers', label: 'ሺዋን'),
+                (id: 'catechism', label: 'ምህሮ'),
+                (id: 'hymns', label: 'መዛሙር'),
+              ]) ...[
+                ChoiceChip(
+                  label: Text(filter.label),
+                  selected: searchScope == filter.id,
+                  onSelected: (_) => setState(() => searchScope = filter.id),
+                ),
+                const SizedBox(width: 7),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
         Text(results.length == 1 ? '1 result' : '${results.length} results',
             style: AppTheme.latin(size: 15)),
         const SizedBox(height: 10),
@@ -673,8 +927,8 @@ class _HomeShellState extends State<HomeShell> {
           Padding(
             padding: const EdgeInsets.only(top: 40),
             child: Column(children: [
-              const Icon(Icons.search_off_rounded,
-                  size: 48, color: AppColors.line),
+              Icon(Icons.search_off_rounded,
+                  size: 48, color: context.palette.outline),
               const SizedBox(height: 10),
               Text('ናድካ እስኒን ኣኽከ', style: AppTheme.geezSerif(size: 17)),
             ]),
@@ -694,8 +948,11 @@ class _HomeShellState extends State<HomeShell> {
                   : it.groupTitle,
               onTap: () {
                 _searchCtrl.clear();
-                setState(() => query = '');
-                _openItem(it);
+                setState(() {
+                  query = '';
+                  searchOpen = false;
+                });
+                _openItem(it, highlightQuery: q);
               },
             ),
       ],
@@ -734,7 +991,7 @@ class _HomeShellState extends State<HomeShell> {
               style: AppTheme.latin(
                 size: 18,
                 w: FontWeight.w700,
-                color: AppColors.wine,
+                color: context.palette.primary,
                 style: FontStyle.normal,
               ),
             ),
@@ -750,95 +1007,169 @@ class _HomeShellState extends State<HomeShell> {
   void _openSettings() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      backgroundColor: context.palette.card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => AnimatedBuilder(
         animation: widget.store,
-        builder: (context, _) => Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 34),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                  child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                          color: AppColors.line,
-                          borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 16),
-              Text('ቅንብር · Settings',
-                  style: AppTheme.geezSerif(
-                      size: 20, w: FontWeight.w700, color: AppColors.wine)),
-              const SizedBox(height: 16),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                thumbColor: WidgetStateProperty.resolveWith(
-                  (states) => states.contains(WidgetState.selected)
-                      ? AppColors.wine
-                      : null,
+        builder: (context, _) => SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                    child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: context.palette.outline,
+                            borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 16),
+                Text('ቅንብር · Settings',
+                    style: AppTheme.geezSerif(
+                        size: 20,
+                        w: FontWeight.w700,
+                        color: context.palette.primary)),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  thumbColor: WidgetStateProperty.resolveWith(
+                    (states) => states.contains(WidgetState.selected)
+                        ? context.palette.primary
+                        : null,
+                  ),
+                  value: widget.store.showNotes,
+                  onChanged: (v) => widget.store.setShowNotes(v),
+                  title: Text('English notes',
+                      style: AppTheme.geezSans(size: 16, w: FontWeight.w600)),
+                  subtitle: Text('Show English context notes & translations',
+                      style: AppTheme.latin(size: 14)),
                 ),
-                value: widget.store.showNotes,
-                onChanged: (v) => widget.store.setShowNotes(v),
-                title: Text('English notes',
+                const SizedBox(height: 4),
+                Text('ፊደል ግዝፈት · Text size',
                     style: AppTheme.geezSans(size: 16, w: FontWeight.w600)),
-                subtitle: Text('Show English context notes & translations',
-                    style: AppTheme.latin(size: 14)),
-              ),
-              const SizedBox(height: 4),
-              Text('Text size',
-                  style: AppTheme.geezSans(size: 16, w: FontWeight.w600)),
-              Row(children: [
-                _scaleBtn(Icons.text_decrease_rounded, -0.1),
-                const SizedBox(width: 12),
-                Text('${(widget.store.scale * 100).round()}%',
-                    style: AppTheme.geezSerif(size: 16)),
-                const SizedBox(width: 12),
-                _scaleBtn(Icons.text_increase_rounded, 0.1),
-              ]),
-              const SizedBox(height: 18),
-              const Ornament(),
-              Text(widget.data.title,
-                  style: AppTheme.geezSerif(
-                      size: 17, w: FontWeight.w700, color: AppColors.wine)),
-              const SizedBox(height: 4),
-              Text(
-                  'Blin (ብሊን) prayers, hymns and catechism in Ge\u2019ez script, '
-                  'for the faithful of the ${widget.data.source}. '
-                  'Works fully offline.',
-                  style: AppTheme.latin(size: 15, style: FontStyle.normal)),
-              const SizedBox(height: 8),
-              Builder(builder: (context) {
-                final prayerCount =
-                    widget.data.items.where((i) => i.kind == 'prayer').length;
-                return Text(
-                    '☩ $prayerCount prayer sections   '
-                    '✝ ${widget.data.catechism.length} catechism topics   '
-                    '♪ ${widget.data.hymns.length} hymns',
-                    style: AppTheme.geezSans(
-                        size: 13,
-                        w: FontWeight.w400,
-                        color: AppColors.inkSoft));
-              }),
-            ],
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 7,
+                  runSpacing: 7,
+                  children: [
+                    for (final preset in const [
+                      (value: 0.9, label: 'Small'),
+                      (value: 1.0, label: 'Standard'),
+                      (value: 1.25, label: 'Large'),
+                      (value: 1.55, label: 'Extra large'),
+                    ])
+                      ChoiceChip(
+                        label: Text(preset.label),
+                        selected:
+                            (widget.store.scale - preset.value).abs() < .05,
+                        onSelected: (_) => widget.store.setScale(preset.value),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: context.palette.surfaceMuted,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: context.palette.outline),
+                  ),
+                  child: Text(
+                    'ዎ ይና አደራ ረሓሚና።',
+                    style: AppTheme.geezSerif(size: 18 * widget.store.scale),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text('ኣርኣያ · Appearance',
+                    style: AppTheme.geezSans(size: 16, w: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 7,
+                  runSpacing: 7,
+                  children: [
+                    for (final option in const [
+                      (
+                        id: 'system',
+                        label: 'System',
+                        icon: Icons.brightness_auto
+                      ),
+                      (
+                        id: 'parchment',
+                        label: 'Parchment',
+                        icon: Icons.light_mode
+                      ),
+                      (
+                        id: 'night',
+                        label: 'Night Prayer',
+                        icon: Icons.dark_mode
+                      ),
+                    ])
+                      ChoiceChip(
+                        avatar: Icon(option.icon, size: 18),
+                        label: Text(option.label),
+                        selected: widget.store.appearance == option.id,
+                        onSelected: (_) =>
+                            widget.store.setAppearance(option.id),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const Ornament(),
+                Text(widget.data.title,
+                    style: AppTheme.geezSerif(
+                        size: 17,
+                        w: FontWeight.w700,
+                        color: context.palette.primary)),
+                Text(
+                  'Version $appVersion ($buildNumber)',
+                  style: AppTheme.latin(
+                    size: 13.5,
+                    color: context.palette.inkMuted,
+                    style: FontStyle.normal,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                    'Blin (ብሊን) prayers, hymns and catechism in Ge\u2019ez script, '
+                    'for the faithful of the ${widget.data.source}. '
+                    'Works fully offline.',
+                    style: AppTheme.latin(size: 15, style: FontStyle.normal)),
+                const SizedBox(height: 8),
+                Builder(builder: (context) {
+                  final prayerCount =
+                      widget.data.items.where((i) => i.kind == 'prayer').length;
+                  return Text(
+                      '☩ $prayerCount prayer sections   '
+                      '✝ ${widget.data.catechism.length} catechism topics   '
+                      '♪ ${widget.data.hymns.length} hymns',
+                      style: AppTheme.geezSans(
+                          size: 13,
+                          w: FontWeight.w400,
+                          color: context.palette.inkMuted));
+                }),
+                const SizedBox(height: 10),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.info_outline_rounded),
+                  title: const Text('ምንጪታት · Sources & Credits'),
+                  subtitle:
+                      const Text('Books, images, authorization and fonts'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openSources();
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-
-  Widget _scaleBtn(IconData icon, double delta) => Material(
-        color: AppColors.parch2,
-        borderRadius: BorderRadius.circular(10),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(10),
-          onTap: () => widget.store.bumpScale(delta),
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Icon(icon, color: AppColors.wine),
-          ),
-        ),
-      );
 }
