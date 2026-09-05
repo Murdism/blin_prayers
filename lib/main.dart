@@ -5,6 +5,8 @@ import 'theme.dart';
 import 'widgets.dart';
 import 'reader_screen.dart';
 import 'quiz_screen.dart';
+import 'divine_mercy_widgets.dart';
+import 'way_of_cross_widgets.dart';
 
 void main() {
   runApp(const BlinApp());
@@ -40,17 +42,17 @@ class _BlinAppState extends State<BlinApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: "ሺዋን", 
+      title: "ሺዋን",
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme(),
       home: error != null
           ? Scaffold(
               body: Center(
                   child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text('Failed to load data:\n$error',
-                    textAlign: TextAlign.center),
-              )))
+              padding: const EdgeInsets.all(24),
+              child: Text('Failed to load data:\n$error',
+                  textAlign: TextAlign.center),
+            )))
           : data == null
               ? const Scaffold(
                   backgroundColor: AppColors.wine,
@@ -89,8 +91,19 @@ class _HomeShellState extends State<HomeShell> {
 
   void _openItem(Item it) {
     Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) =>
+          ReaderScreen(data: widget.data, store: widget.store, itemId: it.id),
+    ));
+  }
+
+  void _openMercy(Item item, int stage) {
+    Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ReaderScreen(
-          data: widget.data, store: widget.store, itemId: it.id),
+        data: widget.data,
+        store: widget.store,
+        itemId: item.id,
+        initialMercyStage: stage,
+      ),
     ));
   }
 
@@ -252,10 +265,34 @@ class _HomeShellState extends State<HomeShell> {
   // ---------------- HOME ----------------
   Widget _home() {
     final cards = [
-      (tab: 1, k: 'Prayers', t: 'ሺዋን', d: 'Daily prayers, Creed, Rosary, Divine Mercy, Way of the Cross & more'),
-      (tab: 2, k: 'Catechism', t: 'ምህሮ ክርስቶስ', d: '${widget.data.quiz.length} questions across ${widget.data.catechism.length} topics — for First Communion'),
-      (tab: 3, k: 'Hymns', t: 'መዛሙር ብሊነው', d: '${widget.data.hymns.length} Blin hymns & songs'),
-      (tab: -1, k: 'Quiz', t: 'ፈተና', d: 'Flashcard quiz mode for children'),
+      (
+        tab: 1,
+        k: 'Prayers',
+        t: 'ሺዋን',
+        d: 'Daily prayers, Creed, Rosary, Divine Mercy, Way of the Cross & more',
+        icon: Icons.auto_stories_rounded,
+      ),
+      (
+        tab: 2,
+        k: 'Catechism',
+        t: 'ምህሮ ክርስቶስ',
+        d: '${widget.data.quiz.length} questions across ${widget.data.catechism.length} topics — for First Communion',
+        icon: Icons.school_rounded,
+      ),
+      (
+        tab: 3,
+        k: 'Hymns',
+        t: 'መዛሙር ብሊነው',
+        d: '${widget.data.hymns.length} Blin hymns & songs',
+        icon: Icons.music_note_rounded,
+      ),
+      (
+        tab: -1,
+        k: 'Quiz',
+        t: 'ፈተና',
+        d: 'Flashcard quiz mode for children',
+        icon: Icons.psychology_alt_rounded,
+      ),
     ];
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 30),
@@ -275,6 +312,7 @@ class _HomeShellState extends State<HomeShell> {
                 kicker: c.k,
                 title: c.t,
                 desc: c.d,
+                icon: c.icon,
                 onTap: () {
                   if (c.tab == -1) {
                     Navigator.of(context).push(MaterialPageRoute(
@@ -332,8 +370,7 @@ class _HomeShellState extends State<HomeShell> {
                   color: const Color(0xFFF7ECD6))),
           const SizedBox(height: 2),
           Text(widget.data.subtitle,
-              style: AppTheme.latin(
-                  size: 17, color: const Color(0xD9F7ECD6))),
+              style: AppTheme.latin(size: 17, color: const Color(0xD9F7ECD6))),
           const SizedBox(height: 12),
           Text(widget.data.language,
               style: AppTheme.geezSans(
@@ -353,34 +390,79 @@ class _HomeShellState extends State<HomeShell> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
       children: [
-        _viewTitle('ሺዋን', 'Prayers & Devotions'),
-        const Ornament(),
+        CollectionHero(
+          eyebrow: 'Prayer library',
+          title: 'ሺዋን',
+          subtitle: 'Prayers & Devotions',
+          description:
+              'Choose a prayer for the day, the sacraments, Marian devotion, mercy, or the table.',
+          icon: Icons.auto_stories_rounded,
+          badge:
+              '${widget.data.items.where((item) => item.group != 'cat' && item.group != 'hymns').length} sections',
+        ),
+        const SizedBox(height: 22),
         for (final g in groups) ...[
-          Padding(
-            padding: const EdgeInsets.only(left: 2, top: 6, bottom: 8),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(g.value.title,
-                  style: AppTheme.geezSerif(
-                      size: 18, w: FontWeight.w700, color: AppColors.wine)),
-              const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Text(g.value.en, style: AppTheme.latin(size: 14)),
+          if (g.key == 'way')
+            WayOfCrossJourney(
+              items: widget.data.itemsInGroup(g.key),
+              isFavorite: widget.store.isFav,
+              onOpen: _openItem,
+            )
+          else if (g.key == 'mercy')
+            DivineMercyJourney(
+              item: widget.data.itemsInGroup(g.key).first,
+              favorite: widget.store.isFav(
+                widget.data.itemsInGroup(g.key).first.id,
               ),
-            ]),
-          ),
-          for (final it in widget.data.itemsInGroup(g.key))
-            ItemRow(
-              leading: '☩',
-              title: it.title,
-              sub: it.note.isNotEmpty ? it.note : it.sub,
-              fav: widget.store.isFav(it.id),
-              onTap: () => _openItem(it),
+              onOpen: _openMercy,
+            )
+          else
+            PrayerGroupPanel(
+              title: g.value.title,
+              subtitle: g.value.en,
+              description: _groupPresentation(g.key).description,
+              icon: _groupPresentation(g.key).icon,
+              items: widget.data.itemsInGroup(g.key),
+              isFavorite: widget.store.isFav,
+              onOpen: _openItem,
             ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 18),
         ],
       ],
     );
+  }
+
+  ({IconData icon, String description}) _groupPresentation(String group) {
+    return switch (group) {
+      'daily' => (
+          icon: Icons.wb_sunny_outlined,
+          description: 'Foundational prayers for the rhythm of every day.'
+        ),
+      'faith' => (
+          icon: Icons.shield_outlined,
+          description: 'The Creed and acts of hope, charity, and contrition.'
+        ),
+      'confession' => (
+          icon: Icons.church_outlined,
+          description: 'Preparation and prayer for Confession and Communion.'
+        ),
+      'rosary' => (
+          icon: Icons.blur_circular_rounded,
+          description: 'Opening prayers, mysteries, and the Marian litany.'
+        ),
+      'mercy' => (
+          icon: Icons.favorite_border_rounded,
+          description: 'The complete Chaplet of Divine Mercy and its litany.'
+        ),
+      'meals' => (
+          icon: Icons.restaurant_rounded,
+          description: 'Blessings before and after the family table.'
+        ),
+      _ => (
+          icon: Icons.auto_stories_outlined,
+          description: 'Prayers and devotional reading.'
+        ),
+    };
   }
 
   // ---------------- CATECHISM ----------------
@@ -388,22 +470,28 @@ class _HomeShellState extends State<HomeShell> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
       children: [
-        _viewTitle('ምህሮ ክርስቶስ', 'Catechism'),
-        const Ornament(glyph: '✝'),
-        Padding(
-          padding: const EdgeInsets.only(left: 2, bottom: 14),
-          child: Text(
-              'Question-and-answer instruction for children preparing '
-              'for their First Communion.',
-              style: AppTheme.latin(size: 15.5)),
+        CollectionHero(
+          eyebrow: 'Learn the faith',
+          title: 'ምህሮ ክርስቶስ',
+          subtitle: 'Catechism',
+          description:
+              'Question-and-answer instruction for children preparing for their First Communion.',
+          icon: Icons.school_rounded,
+          badge: '${widget.data.quiz.length} questions',
         ),
-        for (final it in widget.data.catechismItems)
+        const SizedBox(height: 20),
+        _sectionHeading('${widget.data.catechismItems.length} learning topics',
+            'Choose a topic to read'),
+        const SizedBox(height: 10),
+        for (var index = 0; index < widget.data.catechismItems.length; index++)
           ItemRow(
-            leading: '✝',
-            title: it.title,
-            sub: it.note.isNotEmpty ? it.note : it.sub,
-            fav: widget.store.isFav(it.id),
-            onTap: () => _openItem(it),
+            leading: '${index + 1}',
+            title: widget.data.catechismItems[index].title,
+            sub: widget.data.catechismItems[index].note.isNotEmpty
+                ? widget.data.catechismItems[index].note
+                : widget.data.catechismItems[index].sub,
+            fav: widget.store.isFav(widget.data.catechismItems[index].id),
+            onTap: () => _openItem(widget.data.catechismItems[index]),
           ),
         const Ornament(glyph: '✝'),
         Padding(
@@ -412,8 +500,8 @@ class _HomeShellState extends State<HomeShell> {
               style: AppTheme.geezSerif(
                   size: 16, w: FontWeight.w700, color: AppColors.wine)),
         ),
-        for (final it in widget.data.items
-            .where((x) => x.group == 'confession'))
+        for (final it
+            in widget.data.items.where((x) => x.group == 'confession'))
           ItemRow(
             leading: '✝',
             title: it.title,
@@ -443,8 +531,7 @@ class _HomeShellState extends State<HomeShell> {
                         body: QuizScreen(data: widget.data),
                       )));
             },
-            icon: const Icon(Icons.school_rounded,
-                color: Color(0xFFF7ECD6)),
+            icon: const Icon(Icons.school_rounded, color: Color(0xFFF7ECD6)),
             label: Text('ፈተና ተርሲ · Start Quiz',
                 style: AppTheme.geezSerif(
                     size: 16,
@@ -461,8 +548,18 @@ class _HomeShellState extends State<HomeShell> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
       children: [
-        _viewTitle('መዛሙር ብሊነው', 'Blin Hymns'),
-        const Ornament(glyph: '♪'),
+        CollectionHero(
+          eyebrow: 'Sing and pray',
+          title: 'መዛሙር ብሊነው',
+          subtitle: 'Blin Hymns',
+          description:
+              'A numbered collection of hymns for worship, prayer, and community life.',
+          icon: Icons.music_note_rounded,
+          badge: '${widget.data.hymns.length} hymns',
+        ),
+        const SizedBox(height: 20),
+        _sectionHeading('Hymn book', 'Select a hymn to begin'),
+        const SizedBox(height: 10),
         for (final it in widget.data.hymns)
           ItemRow(
             leading: it.num!.toString(),
@@ -480,14 +577,21 @@ class _HomeShellState extends State<HomeShell> {
     return AnimatedBuilder(
       animation: widget.store,
       builder: (context, _) {
-        final favs = widget.data.items
-            .where((i) => widget.store.isFav(i.id))
-            .toList();
+        final favs =
+            widget.data.items.where((i) => widget.store.isFav(i.id)).toList();
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
           children: [
-            _viewTitle('Favorites ★', 'Favorites'),
-            const Ornament(glyph: '★'),
+            CollectionHero(
+              eyebrow: 'Your collection',
+              title: 'Favorites ★',
+              subtitle: 'Saved for quick access',
+              description:
+                  'The prayers, catechism topics, and hymns you have marked for later.',
+              icon: Icons.star_rounded,
+              badge: '${favs.length} saved',
+            ),
+            const SizedBox(height: 18),
             if (favs.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 50),
@@ -495,8 +599,7 @@ class _HomeShellState extends State<HomeShell> {
                   const Icon(Icons.star_border_rounded,
                       size: 54, color: AppColors.line),
                   const SizedBox(height: 12),
-                  Text('No favorites yet.',
-                      style: AppTheme.latin(size: 18)),
+                  Text('No favorites yet.', style: AppTheme.latin(size: 18)),
                   const SizedBox(height: 6),
                   Text(
                       'Tap the star ☆ while reading to save a prayer or hymn here.',
@@ -538,7 +641,8 @@ class _HomeShellState extends State<HomeShell> {
       final pos = it.body.indexOf(q);
       if (pos >= 0) {
         final s = (pos - 30).clamp(0, it.body.length);
-        snip = it.body.substring(s, (pos + q.length + 50).clamp(0, it.body.length));
+        snip = it.body
+            .substring(s, (pos + q.length + 50).clamp(0, it.body.length));
       } else if (it.qa.isNotEmpty) {
         for (final p in it.qa) {
           final combo = '${p.q} — ${p.a}';
@@ -562,10 +666,7 @@ class _HomeShellState extends State<HomeShell> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 30),
       children: [
-        Text(
-            results.length == 1
-                ? '1 result'
-                : '${results.length} results',
+        Text(results.length == 1 ? '1 result' : '${results.length} results',
             style: AppTheme.latin(size: 15)),
         const SizedBox(height: 10),
         if (results.isEmpty)
@@ -575,8 +676,7 @@ class _HomeShellState extends State<HomeShell> {
               const Icon(Icons.search_off_rounded,
                   size: 48, color: AppColors.line),
               const SizedBox(height: 10),
-              Text('ናድካ እስኒን ኣኽከ',
-                  style: AppTheme.geezSerif(size: 17)),
+              Text('ናድካ እስኒን ኣኽከ', style: AppTheme.geezSerif(size: 17)),
             ]),
           )
         else
@@ -625,6 +725,27 @@ class _HomeShellState extends State<HomeShell> {
     return spans;
   }
 
+  Widget _sectionHeading(String title, String subtitle) => Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: AppTheme.latin(
+                size: 18,
+                w: FontWeight.w700,
+                color: AppColors.wine,
+                style: FontStyle.normal,
+              ),
+            ),
+          ),
+          Text(
+            subtitle,
+            style: AppTheme.latin(size: 13.5, style: FontStyle.normal),
+          ),
+        ],
+      );
+
   // ---------------- SETTINGS ----------------
   void _openSettings() {
     showModalBottomSheet(
@@ -654,7 +775,7 @@ class _HomeShellState extends State<HomeShell> {
               const SizedBox(height: 16),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                activeColor: AppColors.wine,
+                activeThumbColor: AppColors.wine,
                 value: widget.store.showNotes,
                 onChanged: (v) => widget.store.setShowNotes(v),
                 title: Text('English notes',
@@ -686,9 +807,8 @@ class _HomeShellState extends State<HomeShell> {
                   style: AppTheme.latin(size: 15, style: FontStyle.normal)),
               const SizedBox(height: 8),
               Builder(builder: (context) {
-                final prayerCount = widget.data.items
-                    .where((i) => i.kind == 'prayer')
-                    .length;
+                final prayerCount =
+                    widget.data.items.where((i) => i.kind == 'prayer').length;
                 return Text(
                     '☩ $prayerCount prayer sections   '
                     '✝ ${widget.data.catechism.length} catechism topics   '
@@ -716,21 +836,5 @@ class _HomeShellState extends State<HomeShell> {
             child: Icon(icon, color: AppColors.wine),
           ),
         ),
-      );
-
-  Widget _viewTitle(String t, String en) => Padding(
-        padding: const EdgeInsets.only(top: 8, left: 2),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Flexible(
-            child: Text(t,
-                style: AppTheme.geezSerif(
-                    size: 22, w: FontWeight.w700, color: AppColors.wine)),
-          ),
-          const SizedBox(width: 8),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Text(en, style: AppTheme.latin(size: 15)),
-          ),
-        ]),
       );
 }

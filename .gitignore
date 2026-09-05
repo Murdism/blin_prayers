@@ -9,6 +9,7 @@ build/
 *.iml
 .idea/
 .vscode/
+docs/
 
 # Android
 android/.gradle/

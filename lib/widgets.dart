@@ -50,14 +50,14 @@ class PrayerText extends StatefulWidget {
 class _PrayerTextState extends State<PrayerText> {
   final _focusNode = FocusNode();
 
-  static final _roleRe =
-      RegExp(r'^(\s*)(መ|ዲ|ከዳ|ዲባ|ፋ|ር|ሁ|ሕ)([፡፣፥:])');
+  static final _roleRe = RegExp(r'^(\s*)(መ|ዲ|ከዳ|ዲባ|ፋ|ር|ሁ|ሕ)([፡፣፥:])');
   static final _verseRe = RegExp(r'^(\s*)(\d{1,2})([\.\)])\s');
   static final _scheduleRe = RegExp(r'ድምስተው');
+  static final _sectionHeadingRe = RegExp(r'^(?:ሺዋን|ሥቱር|ራሕመት)(?:\s.+)?$');
   static final _ordinalRe = RegExp(r'^(ሰልፋ|ሊጘር|ሲዀር|ሰጀር|አⶖኰር) ');
   // Response word at end of a litany invocation line.
   static final _responseRe =
-      RegExp(r'(ረሓሚና|ሰኸንቲና|ሺዊልና|ዋሲና|ሸኑሪና|መሓሪና)[።፥፣]?$');
+      RegExp(r'(ረሓሚና|ራሓሚና|ሰኸንቲና|ሺዊልና|ዋሲና|ሸኑሪና|መሓሪና)[።፥፣]?$');
 
   @override
   void dispose() {
@@ -101,14 +101,33 @@ class _PrayerTextState extends State<PrayerText> {
 
     void flush() {
       if (buf.isNotEmpty) {
-        result.add(RichText(
-            text: TextSpan(style: base, children: List.of(buf))));
+        result
+            .add(RichText(text: TextSpan(style: base, children: List.of(buf))));
         buf.clear();
       }
     }
 
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i];
+
+      // Short source headings become visible waypoints inside longer prayers.
+      if (line.length <= 80 && _sectionHeadingRe.hasMatch(line.trim())) {
+        flush();
+        if (result.isNotEmpty) result.add(const SizedBox(height: 14));
+        result.add(Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            line,
+            style: base.copyWith(
+              color: AppColors.wine,
+              fontWeight: FontWeight.w700,
+              fontSize: 17 * scale,
+              height: 1.55,
+            ),
+          ),
+        ));
+        continue;
+      }
 
       // Schedule header (day of week for rosary mysteries)
       if (_scheduleRe.hasMatch(line)) {
@@ -123,7 +142,12 @@ class _PrayerTextState extends State<PrayerText> {
       }
 
       // Litany response line → Row: invocation left, response right
-      final rm2 = _responseRe.firstMatch(line);
+      // A line with an explicit liturgical role marker must keep its printed
+      // line shape. It is not a litany row whose response should be pushed to
+      // the far edge (for example: "ዲባ፡ ረሓሚና።"). The normal path below
+      // also gives the role marker its wine-red emphasis.
+      final hasRoleMarker = _roleRe.hasMatch(line);
+      final rm2 = hasRoleMarker ? null : _responseRe.firstMatch(line);
       if (rm2 != null) {
         flush();
         final response = line.substring(rm2.start);
@@ -138,8 +162,7 @@ class _PrayerTextState extends State<PrayerText> {
               const SizedBox(width: 20),
               Text(response,
                   style: base.copyWith(
-                      color: AppColors.wineSoft,
-                      fontWeight: FontWeight.w700)),
+                      color: AppColors.wineSoft, fontWeight: FontWeight.w700)),
             ],
           ));
         } else {
@@ -277,10 +300,340 @@ class ItemRow extends StatelessWidget {
               if (fav)
                 const Padding(
                   padding: EdgeInsets.only(left: 8),
-                  child: Icon(Icons.star_rounded,
-                      color: AppColors.gold, size: 20),
+                  child:
+                      Icon(Icons.star_rounded, color: AppColors.gold, size: 20),
                 ),
+              const SizedBox(width: 3),
+              const Icon(Icons.chevron_right_rounded,
+                  color: AppColors.wineSoft, size: 21),
             ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A compact feature banner used at the top of the main library collections.
+class CollectionHero extends StatelessWidget {
+  final String eyebrow;
+  final String title;
+  final String subtitle;
+  final String description;
+  final IconData icon;
+  final String? badge;
+
+  const CollectionHero({
+    super.key,
+    required this.eyebrow,
+    required this.title,
+    required this.subtitle,
+    required this.description,
+    required this.icon,
+    this.badge,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.wine, AppColors.wineDeep],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x287A1F2B),
+            blurRadius: 22,
+            offset: Offset(0, 9),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -22,
+            top: -30,
+            child: Icon(icon, size: 150, color: const Color(0x10FFFFFF)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(21, 20, 21, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: const Color(0x1FFFFFFF),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0x66CDA85A)),
+                      ),
+                      child:
+                          Icon(icon, size: 23, color: const Color(0xFFF1D494)),
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Text(
+                        eyebrow.toUpperCase(),
+                        style: AppTheme.latin(
+                          size: 12,
+                          w: FontWeight.w700,
+                          color: const Color(0xFFE9CB8D),
+                          style: FontStyle.normal,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  title,
+                  style: AppTheme.geezSerif(
+                    size: 26,
+                    w: FontWeight.w700,
+                    color: const Color(0xFFF9F0DE),
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: AppTheme.latin(
+                    size: 18,
+                    w: FontWeight.w600,
+                    color: const Color(0xFFE9D9BA),
+                    style: FontStyle.normal,
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Text(
+                  description,
+                  style: AppTheme.latin(
+                    size: 15,
+                    color: const Color(0xFFE9D9BA),
+                    style: FontStyle.normal,
+                  ).copyWith(height: 1.35),
+                ),
+                if (badge != null) ...[
+                  const SizedBox(height: 13),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0x1FFFFFFF),
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(color: const Color(0x33CDA85A)),
+                    ),
+                    child: Text(
+                      badge!,
+                      style: AppTheme.latin(
+                        size: 11.5,
+                        w: FontWeight.w700,
+                        color: const Color(0xFFF8EEDB),
+                        style: FontStyle.normal,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A visually grouped prayer collection with a distinct identity and compact
+/// rows. Used for the ordinary prayer groups in the Prayers tab.
+class PrayerGroupPanel extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String description;
+  final IconData icon;
+  final List<Item> items;
+  final bool Function(String itemId) isFavorite;
+  final ValueChanged<Item> onOpen;
+
+  const PrayerGroupPanel({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.description,
+    required this.icon,
+    required this.items,
+    required this.isFavorite,
+    required this.onOpen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.line, width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x123C2614),
+            blurRadius: 14,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 15, 16, 14),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFF5E4C4), Color(0xFFFAF1DF)],
+              ),
+              border: Border(bottom: BorderSide(color: AppColors.line)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.wine,
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(icon, size: 23, color: const Color(0xFFF5DFAC)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTheme.geezSerif(
+                          size: 19,
+                          w: FontWeight.w700,
+                          color: AppColors.wine,
+                        ),
+                      ),
+                      Text(
+                        '$subtitle · ${items.length} ${items.length == 1 ? 'section' : 'sections'}',
+                        style: AppTheme.latin(
+                          size: 13.5,
+                          w: FontWeight.w600,
+                          style: FontStyle.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 11, 16, 6),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                description,
+                style: AppTheme.latin(size: 14.5, style: FontStyle.normal),
+              ),
+            ),
+          ),
+          for (var index = 0; index < items.length; index++) ...[
+            if (index > 0)
+              const Padding(
+                padding: EdgeInsets.only(left: 68),
+                child: Divider(height: 1, color: AppColors.line),
+              ),
+            _PrayerPanelRow(
+              item: items[index],
+              icon: icon,
+              favorite: isFavorite(items[index].id),
+              onTap: () => onOpen(items[index]),
+            ),
+          ],
+          const SizedBox(height: 5),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrayerPanelRow extends StatelessWidget {
+  final Item item;
+  final IconData icon;
+  final bool favorite;
+  final VoidCallback onTap;
+
+  const _PrayerPanelRow({
+    required this.item,
+    required this.icon,
+    required this.favorite,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: '${item.title}. ${item.note.isNotEmpty ? item.note : item.sub}',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF2E4CA),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(icon, size: 19, color: AppColors.wineSoft),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            AppTheme.geezSerif(size: 16.5, w: FontWeight.w700),
+                      ),
+                      if (item.sub.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            item.sub,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTheme.latin(
+                                size: 13.5, style: FontStyle.normal),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (favorite)
+                  const Icon(Icons.star_rounded,
+                      color: AppColors.gold, size: 19),
+                const SizedBox(width: 3),
+                const Icon(Icons.chevron_right_rounded,
+                    color: AppColors.wineSoft),
+              ],
+            ),
           ),
         ),
       ),
@@ -294,12 +647,14 @@ class TileCard extends StatelessWidget {
   final String title;
   final String? desc;
   final VoidCallback onTap;
+  final IconData? icon;
   const TileCard({
     super.key,
     required this.kicker,
     required this.title,
     this.desc,
     required this.onTap,
+    this.icon,
   });
   @override
   Widget build(BuildContext context) {
@@ -319,11 +674,28 @@ class TileCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(kicker.toUpperCase(),
-                  style: AppTheme.latin(
-                      size: 12.5,
-                      w: FontWeight.w600,
-                      color: AppColors.wineSoft)),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(kicker.toUpperCase(),
+                        style: AppTheme.latin(
+                            size: 12.5,
+                            w: FontWeight.w700,
+                            color: AppColors.wineSoft,
+                            style: FontStyle.normal)),
+                  ),
+                  if (icon != null)
+                    Container(
+                      width: 33,
+                      height: 33,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1E2C5),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(icon, size: 18, color: AppColors.wine),
+                    ),
+                ],
+              ),
               const SizedBox(height: 4),
               Text(title,
                   style: AppTheme.geezSerif(size: 17, w: FontWeight.w700)),
@@ -436,8 +808,8 @@ class _HymnBodyState extends State<HymnBody> {
             size: 14, color: Color(0xFFB07D00)),
         const SizedBox(width: 7),
         Text('Verse splits need review',
-            style: AppTheme.latin(
-                size: 12.5 * s, color: const Color(0xFF7A5500))),
+            style:
+                AppTheme.latin(size: 12.5 * s, color: const Color(0xFF7A5500))),
       ]),
     );
   }

@@ -19,3 +19,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/data.json
+    - assets/images/source_2026/
+    - assets/images/way_of_cross_2025/

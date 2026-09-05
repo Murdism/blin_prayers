@@ -37,13 +37,20 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Widget _menu() {
-    final topics =
-        widget.data.catechism.where((t) => t.qa.isNotEmpty).toList();
+    final topics = widget.data.catechism.where((t) => t.qa.isNotEmpty).toList();
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
       children: [
-        _viewTitle('ፈተና ምህሮ', 'Catechism Quiz'),
-        const Ornament(glyph: '✝'),
+        CollectionHero(
+          eyebrow: 'Learn by remembering',
+          title: 'ፈተና ምህሮ',
+          subtitle: 'Catechism Quiz',
+          description:
+              'Read each question, recall the answer, and reveal it when you are ready.',
+          icon: Icons.psychology_alt_rounded,
+          badge: '${widget.data.quiz.length} questions',
+        ),
+        const SizedBox(height: 18),
         Container(
           padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
           decoration: BoxDecoration(
@@ -94,9 +101,9 @@ class _QuizScreenState extends State<QuizScreen> {
               TileCard(
                 kicker: '${t.qa.length} Q',
                 title: t.title,
-                onTap: () => _start(t.qa
-                    .map((p) => QuizPair(t.title, p.q, p.a))
-                    .toList()),
+                icon: Icons.quiz_outlined,
+                onTap: () => _start(
+                    t.qa.map((p) => QuizPair(t.title, p.q, p.a)).toList()),
               ),
           ],
         ),
@@ -129,9 +136,18 @@ class _QuizScreenState extends State<QuizScreen> {
             Text('${idx + 1} / ${pool!.length}',
                 style: AppTheme.latin(size: 15)),
             const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: (idx + 1) / pool!.length,
+                minHeight: 7,
+                backgroundColor: AppColors.parch2,
+                color: AppColors.wine,
+              ),
+            ),
+            const SizedBox(height: 10),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: AppColors.parch2,
                 borderRadius: BorderRadius.circular(999),

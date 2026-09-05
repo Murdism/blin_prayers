@@ -19,6 +19,7 @@ class Item {
   final String refrain;
   final List<String> verses;
   final bool needsReview;
+  final List<ContentVisual> visuals;
 
   Item({
     required this.id,
@@ -36,6 +37,7 @@ class Item {
     this.refrain = '',
     this.verses = const [],
     this.needsReview = false,
+    this.visuals = const [],
   });
 
   /// Lowercased haystack for searching.
@@ -51,10 +53,33 @@ class Item {
       ..write(' ')
       ..write(translation);
     for (final p in qa) {
-      b..write(' ')..write(p.q)..write(' ')..write(p.a);
+      b
+        ..write(' ')
+        ..write(p.q)
+        ..write(' ')
+        ..write(p.a);
     }
     return b.toString();
   }
+}
+
+/// A locally bundled visual attached to a content item.
+class ContentVisual {
+  final String asset;
+  final String role;
+  final String alt;
+  final String caption;
+  final String credit;
+  final int? sourcePage;
+
+  const ContentVisual({
+    required this.asset,
+    this.role = 'inline',
+    this.alt = '',
+    this.caption = '',
+    this.credit = '',
+    this.sourcePage,
+  });
 }
 
 class QA {
@@ -135,11 +160,29 @@ class AppData {
           aEn: (m['a_en'] ?? '').toString(),
         );
 
+    ContentVisual parseVisual(Map m) => ContentVisual(
+          asset: (m['asset'] ?? '').toString(),
+          role: (m['role'] ?? 'inline').toString(),
+          alt: (m['alt'] ?? '').toString(),
+          caption: (m['caption'] ?? '').toString(),
+          credit: (m['credit'] ?? '').toString(),
+          sourcePage: m['source_page'] is int ? m['source_page'] as int : null,
+        );
+
+    List<ContentVisual> parseVisuals(Map m) {
+      final raw = m['visuals'];
+      if (raw is! List) return const [];
+      return raw
+          .whereType<Map>()
+          .map(parseVisual)
+          .where((visual) => visual.asset.isNotEmpty)
+          .toList();
+    }
+
     // Prayer groups
     for (final g in (d['groups'] as List)) {
       final gid = g['id'].toString();
-      groupMeta[gid] =
-          (title: g['title'].toString(), en: g['en'].toString());
+      groupMeta[gid] = (title: g['title'].toString(), en: g['en'].toString());
       for (final s in (g['sections'] as List)) {
         items.add(Item(
           id: 'p_${s['id']}',
@@ -152,6 +195,7 @@ class AppData {
           note: (s['note'] ?? '').toString(),
           translation: (s['translation'] ?? '').toString(),
           body: (s['body'] ?? '').toString(),
+          visuals: parseVisuals(s as Map),
         ));
       }
     }
@@ -184,6 +228,7 @@ class AppData {
         translation: '',
         body: (t['intro'] ?? '').toString(),
         qa: qa,
+        visuals: parseVisuals(t),
       ));
     }
 
@@ -209,17 +254,18 @@ class AppData {
         refrain: (h['refrain'] ?? '').toString(),
         verses: verses,
         needsReview: h['needs_review'] == true,
+        visuals: parseVisuals(h as Map),
       ));
     }
 
-    // Quiz
-    final quiz = (d['quiz'] as List)
-        .map((e) => QuizPair(
-              (e['topic'] ?? '').toString(),
-              (e['q'] ?? '').toString(),
-              (e['a'] ?? '').toString(),
-            ))
-        .toList();
+    // Quiz uses the reviewed catechism as its single source of truth. The
+    // legacy root-level `quiz` list is intentionally ignored.
+    final quiz = <QuizPair>[
+      for (final topic in catechism)
+        for (final pair in topic.qa)
+          if (pair.q.trim().isNotEmpty && pair.a.trim().isNotEmpty)
+            QuizPair(topic.title, pair.q, pair.a),
+    ];
 
     return AppData(
       title: meta['title'].toString(),
