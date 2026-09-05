@@ -14,6 +14,7 @@ class ReaderScreen extends StatefulWidget {
   final String itemId;
   final int? initialMercyStage;
   final String? initialQuery;
+  final bool resumePosition;
   const ReaderScreen({
     super.key,
     required this.data,
@@ -21,6 +22,7 @@ class ReaderScreen extends StatefulWidget {
     required this.itemId,
     this.initialMercyStage,
     this.initialQuery,
+    this.resumePosition = false,
   });
 
   @override
@@ -38,18 +40,20 @@ class _ReaderScreenState extends State<ReaderScreen> {
   void initState() {
     super.initState();
     item = widget.data.byId(widget.itemId)!;
-    _mercyStage = (widget.initialMercyStage ?? widget.store.mercyStage)
+    _mercyStage = (widget.initialMercyStage ??
+            (widget.resumePosition ? widget.store.mercyStage : 0))
         .clamp(0, divineMercyStages.length - 1)
         .toInt();
     _highlightQuery = widget.initialQuery?.trim() ?? '';
+    final initialOffset =
+        widget.resumePosition ? widget.store.readingOffset(item.id) : 0.0;
     _scrollController = ScrollController(
-      initialScrollOffset: widget.store.readingOffset(item.id),
+      initialScrollOffset: initialOffset,
     )..addListener(_schedulePositionSave);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) widget.store.recordOpened(item.id);
     });
-    if (_highlightQuery.isNotEmpty &&
-        widget.store.readingOffset(item.id) == 0) {
+    if (_highlightQuery.isNotEmpty && initialOffset == 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSearchHit());
     }
   }
@@ -110,14 +114,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       widget.store.recordOpened(it.id);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            widget.store.readingOffset(it.id).clamp(
-                  0,
-                  _scrollController.position.maxScrollExtent,
-                ),
-            duration: const Duration(milliseconds: 320),
-            curve: Curves.easeOutCubic,
-          );
+          _scrollController.jumpTo(0);
         }
       });
       return;

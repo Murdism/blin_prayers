@@ -108,13 +108,18 @@ class _HomeShellState extends State<HomeShell> {
     super.dispose();
   }
 
-  void _openItem(Item it, {String? highlightQuery}) {
+  void _openItem(
+    Item it, {
+    String? highlightQuery,
+    bool resumePosition = false,
+  }) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ReaderScreen(
         data: widget.data,
         store: widget.store,
         itemId: it.id,
         initialQuery: highlightQuery,
+        resumePosition: resumePosition,
       ),
     ));
   }
@@ -474,7 +479,7 @@ class _HomeShellState extends State<HomeShell> {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => _openItem(item),
+        onTap: () => _openItem(item, resumePosition: !complete),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(18, 16, 12, 16),
           child: Row(
