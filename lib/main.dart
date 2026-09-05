@@ -775,7 +775,11 @@ class _HomeShellState extends State<HomeShell> {
               const SizedBox(height: 16),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                activeThumbColor: AppColors.wine,
+                thumbColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? AppColors.wine
+                      : null,
+                ),
                 value: widget.store.showNotes,
                 onChanged: (v) => widget.store.setShowNotes(v),
                 title: Text('English notes',
