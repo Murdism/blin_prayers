@@ -58,9 +58,16 @@ class SourcesScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   const _SourceCard(
                     title: 'Supporting material',
-                    subtitle: 'Our Father.docx and the supplied Jesus image',
+                    subtitle: 'Our Father.docx and supplied devotional images',
                     description:
-                        'The Word document confirms the standard-prayer wording. The supplied Jesus image is used directly in Divine Mercy.',
+                        'The Word document confirms the standard-prayer wording. The supplied Jesus image is used in Divine Mercy, and the supplied icon of Mary and Jesus appears at the beginning of Marian Prayers.',
+                  ),
+                  const SizedBox(height: 12),
+                  const _SourceCard(
+                    title: 'ሺዋን ኣማነቱዅ ኒቅዪዅ',
+                    subtitle: 'Nicene Creed · supplied RTF',
+                    description:
+                        'Source for the complete standalone Nicene Creed, kept separate from the existing Apostles’ Creed and devotional acts.',
                   ),
                   const SizedBox(height: 18),
                   const _AuthorizationCard(),

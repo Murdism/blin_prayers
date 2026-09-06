@@ -43,7 +43,7 @@ class _QuizScreenState extends State<QuizScreen> {
       children: [
         CollectionHero(
           eyebrow: 'Learn by remembering',
-          title: 'ፈተና ምህሮ',
+          title: 'ክርስቶስር ክኒ ግናቲትድ',
           subtitle: 'Catechism Quiz',
           description:
               'Read each question, recall the answer, and reveal it when you are ready.',
@@ -117,7 +117,7 @@ class _QuizScreenState extends State<QuizScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
       children: [
-        _viewTitle('ፈተና ምህሮ', 'Catechism Quiz'),
+        _viewTitle('ክርስቶስር ክኒ ግናቲትድ', 'Catechism Quiz'),
         const Ornament(glyph: '✝'),
         Container(
           padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
@@ -216,7 +216,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         });
                       }
                     },
-                    child: Text(last ? 'ተመሙኽ · Finish' : 'ኰዶ → · Next',
+                    child: Text(last ? 'ተመሙኽ · Finish' : 'ደኵሲ · Next',
                         style: AppTheme.geezSerif(
                             size: 16,
                             w: FontWeight.w700,
@@ -232,7 +232,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     padding: const EdgeInsets.symmetric(
                         vertical: 14, horizontal: 18)),
                 onPressed: _exit,
-                child: Text('ደምቢራ',
+                child: Text('ወንተሪ',
                     style: AppTheme.geezSerif(
                         size: 16,
                         w: FontWeight.w700,
@@ -248,11 +248,14 @@ class _QuizScreenState extends State<QuizScreen> {
   Widget _viewTitle(String t, String en) => Padding(
         padding: const EdgeInsets.only(top: 10, left: 2),
         child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(t,
-              style: AppTheme.geezSerif(
-                  size: 22,
-                  w: FontWeight.w700,
-                  color: context.palette.primary)),
+          Expanded(
+            child: Text(t,
+                softWrap: true,
+                style: AppTheme.geezSerif(
+                    size: 22,
+                    w: FontWeight.w700,
+                    color: context.palette.primary)),
+          ),
           const SizedBox(width: 8),
           Padding(
             padding: const EdgeInsets.only(bottom: 2),

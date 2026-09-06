@@ -73,6 +73,10 @@ class PrayerCollectionScreen extends StatelessWidget {
                           ? '2 prayer areas'
                           : '${items.length} ${items.length == 1 ? 'section' : 'sections'}',
                     ),
+                    if (groupId == 'rosary') ...[
+                      const SizedBox(height: 18),
+                      const MarianPrayerIcon(),
+                    ],
                     const SizedBox(height: 20),
                     if (groupId == 'rosary')
                       MarianPrayerJourney(

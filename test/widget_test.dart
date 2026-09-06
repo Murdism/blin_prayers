@@ -15,14 +15,26 @@ void main() {
 
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byType(NavigationDestination), findsNWidgets(4));
+    expect(find.text('ልጝን'), findsOneWidget);
     expect(find.text('Quick prayer'), findsOneWidget);
     expect(find.text('Catholic Eparchy of Keren'), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.school_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('ክርስቶስር ክኒ ግናቲትድ'), findsOneWidget);
+    expect(find.textContaining('First Communion'), findsNothing);
+    await tester.tap(find.byIcon(Icons.home_rounded));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Rosary: opening, mysteries & litany'));
     await tester.pumpAndSettle();
     expect(find.text('ROSARY'), findsOneWidget);
     expect(find.text('Opening, mysteries & litany'), findsOneWidget);
     expect(find.text('Other Marian prayer'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('marian-prayers-icon')),
+      findsOneWidget,
+    );
     expect(find.text('Opening Prayers of the Rosary'), findsNothing);
 
     tester.state<NavigatorState>(find.byType(Navigator)).pop();
@@ -39,13 +51,14 @@ void main() {
 
     expect(find.text('ናድካ · All'), findsOneWidget);
     expect(find.text('ሺዋን'), findsWidgets);
-    expect(find.text('ምህሮ'), findsWidgets);
+    expect(find.text('Catechism'), findsWidgets);
     expect(find.text('መዛሙር'), findsWidgets);
 
     await tester.tap(find.byTooltip('ጠፍሕ · Search'));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.menu_book_rounded));
     await tester.pumpAndSettle();
+    expect(find.text('ክማና ሺዋኑዅ'), findsOneWidget);
     await tester.tap(find.text('ማርያምር ሺዋን').first);
     await tester.pumpAndSettle();
 
@@ -55,6 +68,8 @@ void main() {
     expect(find.text('ይና ገና ማርያም ጊመት ሰላምሪ'), findsOneWidget);
     expect(find.text('ማርያምር ጅኝጃን'), findsNothing);
 
+    await tester.ensureVisible(find.text('Opening, mysteries & litany'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Opening, mysteries & litany'));
     await tester.pumpAndSettle();
     expect(find.text('7 connected sections'), findsOneWidget);

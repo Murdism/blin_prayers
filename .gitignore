@@ -9,7 +9,12 @@ build/
 *.iml
 .idea/
 .vscode/
-docs/
+# Documentation remains local by default, except the deliberately preserved
+# deprecated hymn archive.
+docs/*
+# !docs/old/
+# docs/old/*
+# !docs/old/old_songs.json
 
 # Android
 android/.gradle/

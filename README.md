@@ -12,9 +12,9 @@ navigation redesign.
 - 📖 **7 prayer collections** — daily prayers, the Creed & Acts, Confession &
   Communion, Marian Prayers with a grouped Rosary, the Divine Mercy Chaplet,
   the Way of the Cross, and Grace at meals
-- ✝️ **Catechism** — 11 topics, 65 question-and-answer pairs (for First Communion)
+- ✝️ **Catechism** — 11 topics and 65 question-and-answer pairs, presented especially for children
 - 🎓 **Quiz mode** — shuffle-able flashcards, all topics or one at a time
-- 🎵 **40 Blin hymns**
+- 🎵 **12 newly supplied Blin hymns**, with more ready to be added over time
 - 🖼️ Devotional artwork with offline viewing and tap-to-zoom
 - ✨ Dedicated four-stage Divine Mercy and Way of the Cross journeys, structured
   prayer cards, Rosary mystery steps, and catechism Q&A panels
@@ -56,8 +56,11 @@ blin_prayers/
 
 ## Notes on the source material
 
-The content was extracted from three community files:
-- a Blin **hymns** text,
+The current content sources include:
+- twelve individually supplied Blin hymn DOCX files; their Scripture
+  introductions and trailing credit lines are stored separately from lyrics,
+- the former community Blin hymn collection, preserved only as the
+  non-runtime archive `docs/old/old_songs.json`,
 - **አውኒ መሀድዅንና 2026** — the text-native 38-page Catholic Eparchy of
   Keren prayer and catechism book used to reconcile the corresponding app
   sections,

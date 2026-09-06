@@ -657,7 +657,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 13),
                 ),
                 icon: const Icon(Icons.arrow_back_rounded, size: 19),
-                label: const Text('ደምቢራ'),
+                label: const Text('ወንተሪ'),
               ),
             ),
             const SizedBox(width: 8),
@@ -678,7 +678,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 ),
                 iconAlignment: IconAlignment.end,
                 icon: const Icon(Icons.arrow_forward_rounded, size: 19),
-                label: Text(next == null ? 'ተመሙዅ' : 'ቀጽሊ'),
+                label: Text(next == null ? 'ተመሙዅ' : 'ደኵሲ'),
               ),
             ),
           ],
@@ -1248,6 +1248,26 @@ class _ReaderScreenState extends State<ReaderScreen> {
       );
     }
 
+    if (source.id == 'p_creed') {
+      const actHeading = '\nሺዋን ኣማነቱዅ\n';
+      final actStart = body.indexOf(actHeading);
+      if (actStart > 0) {
+        return [
+          _ReaderPart(
+            'The Apostles’ Creed',
+            body.substring(0, actStart).trim(),
+            Icons.shield_outlined,
+            emphasized: true,
+          ),
+          _ReaderPart(
+            'Act of Faith',
+            body.substring(actStart + 1).trim(),
+            Icons.volunteer_activism_outlined,
+          ),
+        ];
+      }
+    }
+
     const rosaryMysteries = {
       'p_rosary_joyful',
       'p_rosary_sorrowful',
@@ -1660,7 +1680,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('ቀጽሊ',
+                        Text('ደኵሲ',
                             style: AppTheme.latin(
                                 size: 11,
                                 w: FontWeight.w600,

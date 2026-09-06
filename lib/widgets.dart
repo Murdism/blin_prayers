@@ -812,7 +812,7 @@ class NotePanel extends StatelessWidget {
   }
 }
 
-/// Gospel-song layout: optional refrain block, numbered verses.
+/// Gospel-song layout preserving the source order of refrains and verses.
 class HymnBody extends StatefulWidget {
   final Item item;
   final double scale;
@@ -839,6 +839,16 @@ class _HymnBodyState extends State<HymnBody> {
       size: 17 * s,
       color: context.palette.ink,
     ).copyWith(height: 1.9);
+    final sectionWidgets = <Widget>[];
+    var verseNumber = 0;
+    for (final section in item.hymnSections) {
+      if (section.isRefrain) {
+        sectionWidgets.add(_refrainBlock(section.text, base, s));
+      } else {
+        verseNumber += 1;
+        sectionWidgets.add(_verseBlock(verseNumber, section.text, base, s));
+      }
+    }
 
     return SelectableRegion(
       focusNode: _focusNode,
@@ -846,21 +856,141 @@ class _HymnBodyState extends State<HymnBody> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (item.refrain.isNotEmpty) ...[
-            _refrainBlock(item.refrain, base, s),
-          ],
-          if (item.verses.isNotEmpty)
+          if (item.hymnIntro.isNotEmpty) _introBlock(item.hymnIntro, base, s),
+          if (sectionWidgets.isNotEmpty)
+            ...sectionWidgets
+          else if (item.verses.isNotEmpty) ...[
+            if (item.refrain.isNotEmpty) _refrainBlock(item.refrain, base, s),
             for (var i = 0; i < item.verses.length; i++) ...[
               _verseBlock(i + 1, item.verses[i], base, s),
             ]
-          else
+          ] else
             Text(item.body, style: base),
+          if (item.hymnCredits.isNotEmpty)
+            _creditsBlock(item.hymnCredits, base, s),
         ],
       ),
     );
   }
 
+  Widget _introBlock(String intro, TextStyle base, double s) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: BoxDecoration(
+        color: context.palette.surfaceMuted,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.palette.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.menu_book_outlined,
+                  size: 17, color: context.palette.primary),
+              const SizedBox(width: 7),
+              Text(
+                'Scripture introduction',
+                style: AppTheme.latin(
+                  size: 11.5 * s,
+                  w: FontWeight.w700,
+                  color: context.palette.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            intro,
+            style: base.copyWith(
+              fontStyle: FontStyle.italic,
+              color: context.palette.inkMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _creditsBlock(List<String> credits, TextStyle base, double s) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.fromLTRB(16, 13, 16, 14),
+      decoration: BoxDecoration(
+        color: context.palette.surfaceMuted,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.palette.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.attribution_outlined,
+                  size: 17, color: context.palette.primary),
+              const SizedBox(width: 7),
+              Text(
+                'Credits',
+                style: AppTheme.latin(
+                  size: 11.5 * s,
+                  w: FontWeight.w700,
+                  color: context.palette.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          for (final credit in credits)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 7),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_creditRole(credit) case final role?) ...[
+                    Text(
+                      role.toUpperCase(),
+                      style: AppTheme.latin(
+                        size: 10.5 * s,
+                        w: FontWeight.w700,
+                        color: context.palette.primarySoft,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                  ],
+                  Text(
+                    credit,
+                    style: base.copyWith(
+                      fontSize: 15 * s,
+                      color: context.palette.inkMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String? _creditRole(String credit) {
+    final value = credit.trimLeft();
+    if (value.startsWith('ላሕማዲ ሒንዲ') || value.startsWith('ላሕማ ዲ ሒንዲ')) {
+      return 'Lyrics & melody';
+    }
+    if (value.startsWith('ላሕማ')) return 'Lyrics';
+    if (value.startsWith('ሒን')) return 'Melody';
+    return null;
+  }
+
   Widget _refrainBlock(String refrain, TextStyle base, double s) {
+    final parts = refrain
+        .split(RegExp(r'\n\s*\n'))
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
@@ -900,11 +1030,26 @@ class _HymnBodyState extends State<HymnBody> {
                             color: context.palette.primarySoft)),
                   ]),
                   const SizedBox(height: 6),
-                  Text(refrain,
+                  for (var index = 0; index < parts.length; index++) ...[
+                    if (index > 0)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        child: Divider(
+                          key: ValueKey('refrain-part-divider-${index - 1}'),
+                          height: 1,
+                          thickness: 1,
+                          color: context.palette.goldDecorative
+                              .withValues(alpha: 0.55),
+                        ),
+                      ),
+                    Text(
+                      parts[index],
                       style: base.copyWith(
-                          fontStyle: FontStyle.italic,
-                          color:
-                              context.palette.primary.withValues(alpha: 0.85))),
+                        fontStyle: FontStyle.italic,
+                        color: context.palette.primary.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

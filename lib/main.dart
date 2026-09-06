@@ -95,9 +95,9 @@ class _HomeShellState extends State<HomeShell> {
 
   // bottom tabs
   static const _tabs = [
-    (icon: Icons.home_rounded, label: 'ልጝ'),
+    (icon: Icons.home_rounded, label: 'ልጝን'),
     (icon: Icons.menu_book_rounded, label: 'ሺዋን'),
-    (icon: Icons.school_rounded, label: 'ምህሮ'),
+    (icon: Icons.school_rounded, label: 'Catechism'),
     (icon: Icons.music_note_rounded, label: 'መዛሙር'),
   ];
 
@@ -231,7 +231,7 @@ class _HomeShellState extends State<HomeShell> {
                     onChanged: (v) => setState(() => query = v),
                     style: AppTheme.geezSans(size: 15.5, w: FontWeight.w400),
                     decoration: InputDecoration(
-                      hintText: 'ጠፍሕ… ሺዋን፣ ምህሮ፣ መዛሙር',
+                      hintText: 'ጠፍሕ… ሺዋን፣ Catechism፣ መዛሙር',
                       hintStyle: AppTheme.geezSans(
                           size: 14.5,
                           w: FontWeight.w400,
@@ -684,7 +684,7 @@ class _HomeShellState extends State<HomeShell> {
               '${widget.data.items.where((item) => item.group != 'cat' && item.group != 'hymns').length} sections',
         ),
         const SizedBox(height: 22),
-        _sectionHeading('ሺዋን ክፍሊታት', 'Prayer collections'),
+        _sectionHeading('ክማና ሺዋኑዅ', 'Prayer collection'),
         const SizedBox(height: 11),
         for (final groupId in order) ...[
           _collectionEntry(groupId),
@@ -766,10 +766,10 @@ class _HomeShellState extends State<HomeShell> {
       children: [
         CollectionHero(
           eyebrow: 'Learn the faith',
-          title: 'ምህሮ ክርስቶስ',
+          title: 'ክርስቶስር ክኒ ግናቲትድ',
           subtitle: 'Catechism',
           description:
-              'Question-and-answer instruction for children preparing for their First Communion.',
+              'Catholic teaching presented through clear questions and answers, especially for children.',
           icon: Icons.school_rounded,
           badge: '${widget.data.quiz.length} questions',
         ),
@@ -791,7 +791,7 @@ class _HomeShellState extends State<HomeShell> {
         OutlinedButton.icon(
           onPressed: () => _openGroup('confession'),
           icon: const Icon(Icons.church_outlined),
-          label: const Text('ንስሒዅ · Confession & Communion prayers'),
+          label: const Text('ንስሓዲ ቍርባንዲ · Confession & Communion'),
         ),
         const SizedBox(height: 12),
         SizedBox(
@@ -825,7 +825,7 @@ class _HomeShellState extends State<HomeShell> {
           title: 'መዛሙር ብሊነው',
           subtitle: 'Blin Hymns',
           description:
-              'A numbered collection of hymns for worship, prayer, and community life.',
+              'A growing collection of hymns for worship, prayer, and community life.',
           icon: Icons.music_note_rounded,
           badge: '${widget.data.hymns.length} hymns',
         ),
@@ -897,7 +897,7 @@ class _HomeShellState extends State<HomeShell> {
               for (final filter in const [
                 (id: 'all', label: 'ናድካ · All'),
                 (id: 'prayers', label: 'ሺዋን'),
-                (id: 'catechism', label: 'ምህሮ'),
+                (id: 'catechism', label: 'Catechism'),
                 (id: 'hymns', label: 'መዛሙር'),
               ]) ...[
                 ChoiceChip(

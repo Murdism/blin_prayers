@@ -16,6 +16,9 @@ const _rosarySectionIds = {
   'p_litany',
 };
 
+const _marianPrayerIconAsset =
+    'assets/images/source_2026/marian_prayers_icon.jpg';
+
 /// The Marian landing page keeps the Rosary together as one devotion while
 /// leaving room for additional Marian prayers supplied in the future.
 class MarianPrayerJourney extends StatelessWidget {
@@ -78,6 +81,132 @@ class MarianPrayerJourney extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// A single devotional focal image for the Marian collection landing page.
+///
+/// It is intentionally not repeated in the Rosary or individual prayer
+/// readers. The complete portrait composition is kept visible here and can be
+/// opened in a zoomable view.
+class MarianPrayerIcon extends StatelessWidget {
+  const MarianPrayerIcon({super.key});
+
+  void _openImage(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.all(12),
+        backgroundColor: Colors.black,
+        child: SizedBox(
+          width: size.width - 24,
+          height: size.height * 0.88,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 4,
+                child: Center(
+                  child: Image.asset(
+                    _marianPrayerIconAsset,
+                    fit: BoxFit.contain,
+                    semanticLabel:
+                        'Icon of the Blessed Virgin Mary holding the child Jesus',
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton.filled(
+                    tooltip: 'Close image',
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 390),
+        child: Semantics(
+          button: true,
+          label:
+              'Icon of the Blessed Virgin Mary holding the child Jesus. Open full-screen image.',
+          child: Material(
+            color: context.palette.card,
+            elevation: 3,
+            shadowColor: context.palette.marianBlue.withValues(alpha: 0.28),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+              side: BorderSide(
+                color: context.palette.goldDecorative,
+                width: 1.4,
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => _openImage(context),
+              child: Stack(
+                children: [
+                  AspectRatio(
+                    aspectRatio: 1066 / 1600,
+                    child: Image.asset(
+                      _marianPrayerIconAsset,
+                      key: const ValueKey('marian-prayers-icon'),
+                      fit: BoxFit.cover,
+                      excludeFromSemantics: true,
+                      errorBuilder: (context, error, stackTrace) => ColoredBox(
+                        color: context.palette.surfaceMuted,
+                        child: Center(
+                          child: Icon(
+                            Icons.image_not_supported_outlined,
+                            color: context.palette.inkMuted,
+                            size: 42,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 12,
+                    bottom: 12,
+                    child: IgnorePointer(
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: const Color(0xCC1C1714),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0x99E9CB8D)),
+                        ),
+                        child: const Icon(
+                          Icons.zoom_out_map_rounded,
+                          color: Color(0xFFFFF4DF),
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -18,6 +18,9 @@ class Item {
   // Hymn-specific fields
   final String refrain;
   final List<String> verses;
+  final List<HymnSection> hymnSections;
+  final String hymnIntro;
+  final List<String> hymnCredits;
   final bool needsReview;
   final List<ContentVisual> visuals;
 
@@ -36,6 +39,9 @@ class Item {
     this.num,
     this.refrain = '',
     this.verses = const [],
+    this.hymnSections = const [],
+    this.hymnIntro = '',
+    this.hymnCredits = const [],
     this.needsReview = false,
     this.visuals = const [],
   });
@@ -51,7 +57,14 @@ class Item {
       ..write(' ')
       ..write(note)
       ..write(' ')
-      ..write(translation);
+      ..write(translation)
+      ..write(' ')
+      ..write(hymnIntro);
+    for (final credit in hymnCredits) {
+      b
+        ..write(' ')
+        ..write(credit);
+    }
     for (final p in qa) {
       b
         ..write(' ')
@@ -61,6 +74,16 @@ class Item {
     }
     return b.toString();
   }
+}
+
+/// One source-ordered hymn section: either a numbered verse or a refrain.
+class HymnSection {
+  final String type;
+  final String text;
+
+  const HymnSection({required this.type, required this.text});
+
+  bool get isRefrain => type == 'refrain';
 }
 
 /// A locally bundled visual attached to a content item.
@@ -258,7 +281,7 @@ class AppData {
         id: 'c_$i',
         kind: 'catechism',
         group: 'cat',
-        groupTitle: 'ምህሮ ክርስቶስ',
+        groupTitle: 'ክርስቶስር ክኒ ግናቲትድ',
         groupEn: 'Catechism',
         title: t['title'].toString(),
         sub: 'Catechism · ${qa.length} Q&A',
@@ -273,12 +296,47 @@ class AppData {
     // Hymns
     for (final h in (d['hymns'] as List)) {
       final n = h['num'] as int;
-      final rawVerses = h['verses'];
-      final verses = rawVerses is List
-          ? rawVerses.map((v) => v.toString()).toList()
-          : <String>[];
+      final hymnSections = <HymnSection>[];
+      final rawSections = h['sections'];
+      if (rawSections is List) {
+        for (final rawSection in rawSections.whereType<Map>()) {
+          final type = (rawSection['type'] ?? '').toString();
+          final text = (rawSection['text'] ?? '').toString();
+          if ((type == 'verse' || type == 'refrain') && text.isNotEmpty) {
+            hymnSections.add(HymnSection(type: type, text: text));
+          }
+        }
+      } else {
+        // Compatibility for older hymn data that always placed one refrain
+        // before a separate list of verses.
+        final legacyRefrain = (h['refrain'] ?? '').toString();
+        if (legacyRefrain.isNotEmpty) {
+          hymnSections.add(
+            HymnSection(type: 'refrain', text: legacyRefrain),
+          );
+        }
+        final rawVerses = h['verses'];
+        if (rawVerses is List) {
+          hymnSections.addAll(
+            rawVerses.map(
+              (verse) => HymnSection(type: 'verse', text: verse.toString()),
+            ),
+          );
+        }
+      }
+      final verses = hymnSections
+          .where((section) => !section.isRefrain)
+          .map((section) => section.text)
+          .toList();
+      var refrain = '';
+      for (final section in hymnSections) {
+        if (section.isRefrain) {
+          refrain = section.text;
+          break;
+        }
+      }
       items.add(Item(
-        id: 'h_$n',
+        id: (h['id'] ?? 'h_$n').toString(),
         kind: 'hymn',
         group: 'hymns',
         groupTitle: 'መዛሙር',
@@ -289,8 +347,13 @@ class AppData {
         translation: (h['translation'] ?? '').toString(),
         body: (h['body'] ?? '').toString(),
         num: n,
-        refrain: (h['refrain'] ?? '').toString(),
+        refrain: refrain,
         verses: verses,
+        hymnSections: hymnSections,
+        hymnIntro: (h['intro'] ?? '').toString(),
+        hymnCredits: h['credits'] is List
+            ? (h['credits'] as List).map((credit) => credit.toString()).toList()
+            : const [],
         needsReview: h['needs_review'] == true,
         visuals: parseVisuals(h as Map),
       ));
