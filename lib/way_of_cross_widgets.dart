@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'data.dart';
 import 'theme.dart';
 
-/// Returns the canonical station number encoded in a Way of the Cross item id.
+/// Returns the canonical station number encoded in a Stations item id.
 int? wayStationNumber(Item item) {
   final match = RegExp(r'^p_way_station_(\d{2})$').firstMatch(item.id);
   return match == null ? null : int.tryParse(match.group(1)!);
@@ -224,7 +224,7 @@ class _JourneyHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'The Way of the Cross',
+                  'The Stations of the Cross',
                   style: AppTheme.latin(
                     size: 19,
                     w: FontWeight.w600,

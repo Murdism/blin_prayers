@@ -92,7 +92,7 @@ def check_hashes(source_dir: Path) -> dict[str, Path]:
 def check_way(data: dict, pdf: Path) -> None:
     expected_sections = way.build_sections(way.extract_pages(pdf))
     if group_by_id(data, "way")["sections"] != expected_sections:
-        raise RuntimeError("Way of the Cross text or metadata differs from its source")
+        raise RuntimeError("Stations of the Cross text or metadata differs from its source")
 
     runtime_dir = ROOT / "assets" / "images" / "way_of_cross_2025"
     runtime_names = [f"station_{number:02d}.jpg" for number in range(1, 15)]
@@ -102,7 +102,7 @@ def check_way(data: dict, pdf: Path) -> None:
         way.extract_images(pdf, extracted_dir)
         for filename in runtime_names:
             if digest(extracted_dir / filename) != digest(runtime_dir / filename):
-                raise RuntimeError(f"Way of the Cross image differs: {filename}")
+                raise RuntimeError(f"Stations of the Cross image differs: {filename}")
 
 
 def check_queen(data: dict, pdf: Path) -> None:

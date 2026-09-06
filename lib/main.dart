@@ -502,7 +502,7 @@ class _HomeShellState extends State<HomeShell> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      complete ? 'ኰዶ ተርሲ · Pray again' : 'ቀጽሊ · Continue',
+                      complete ? 'ኰዶ ተርሲ · Pray again' : 'ተለለይዲ · Continue',
                       style: AppTheme.geezSans(
                         size: 12.5,
                         w: FontWeight.w700,

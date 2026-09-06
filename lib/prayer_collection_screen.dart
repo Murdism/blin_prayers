@@ -71,7 +71,9 @@ class PrayerCollectionScreen extends StatelessWidget {
                       icon: presentation.icon,
                       badge: groupId == 'rosary'
                           ? '2 prayer areas'
-                          : '${items.length} ${items.length == 1 ? 'section' : 'sections'}',
+                          : groupId == 'faith'
+                              ? '2 prayer groups'
+                              : '${items.length} ${items.length == 1 ? 'section' : 'sections'}',
                     ),
                     if (groupId == 'rosary') ...[
                       const SizedBox(height: 18),
@@ -104,6 +106,12 @@ class PrayerCollectionScreen extends StatelessWidget {
                         favorite: store.isFav(items.first.id),
                         onOpen: (item, stage) =>
                             _open(context, item, mercyStage: stage),
+                      )
+                    else if (groupId == 'faith')
+                      _FaithPrayerJourney(
+                        items: items,
+                        isFavorite: store.isFav,
+                        onOpen: (item) => _open(context, item),
                       )
                     else
                       PrayerGroupPanel(
@@ -159,7 +167,8 @@ class PrayerCollectionScreen extends StatelessWidget {
     'faith' => (
         icon: Icons.shield_outlined,
         eyebrow: 'PROFESS THE FAITH',
-        description: 'The Creed and acts of hope, charity, and contrition.'
+        description:
+            'The Apostles’ and Nicene Creeds, followed by four devotional acts.'
       ),
     'meals' => (
         icon: Icons.restaurant_rounded,
@@ -172,4 +181,48 @@ class PrayerCollectionScreen extends StatelessWidget {
         description: 'Prayers and devotional reading.'
       ),
   };
+}
+
+class _FaithPrayerJourney extends StatelessWidget {
+  static const _creedIds = {'p_creed', 'p_nicene_creed'};
+
+  final List<Item> items;
+  final bool Function(String itemId) isFavorite;
+  final ValueChanged<Item> onOpen;
+
+  const _FaithPrayerJourney({
+    required this.items,
+    required this.isFavorite,
+    required this.onOpen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final creeds = items.where((item) => _creedIds.contains(item.id)).toList();
+    final acts = items.where((item) => !_creedIds.contains(item.id)).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PrayerGroupPanel(
+          title: 'Creeds',
+          subtitle: 'Apostles’ and Nicene',
+          description: 'The two professions of faith.',
+          icon: Icons.shield_outlined,
+          items: creeds,
+          isFavorite: isFavorite,
+          onOpen: onOpen,
+        ),
+        const SizedBox(height: 16),
+        PrayerGroupPanel(
+          title: 'Acts',
+          subtitle: 'Faith, hope, charity and contrition',
+          description: 'Four short devotional acts, each listed separately.',
+          icon: Icons.volunteer_activism_outlined,
+          items: acts,
+          isFavorite: isFavorite,
+          onOpen: onOpen,
+        ),
+      ],
+    );
+  }
 }

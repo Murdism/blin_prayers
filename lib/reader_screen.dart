@@ -427,7 +427,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       ),
                     ),
                     Text(
-                      'Way of the Cross · ${sequenceIndex + 1} of ${_wayItems.length} sections',
+                      'Stations of the Cross · ${sequenceIndex + 1} of ${_wayItems.length} sections',
                       style:
                           AppTheme.latin(size: 12.5, style: FontStyle.normal),
                     ),
@@ -1239,33 +1239,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
       }
     }
 
-    if (source.id == 'p_acts') {
-      return _splitAtHeadings(
-        body,
-        RegExp(r'^ሺዋን\s', multiLine: true),
-        const ['Act of hope', 'Act of charity', 'Act of contrition'],
-        Icons.volunteer_activism_outlined,
-      );
-    }
-
-    if (source.id == 'p_creed') {
-      const actHeading = '\nሺዋን ኣማነቱዅ\n';
-      final actStart = body.indexOf(actHeading);
-      if (actStart > 0) {
-        return [
-          _ReaderPart(
-            'The Apostles’ Creed',
-            body.substring(0, actStart).trim(),
-            Icons.shield_outlined,
-            emphasized: true,
-          ),
-          _ReaderPart(
-            'Act of Faith',
-            body.substring(actStart + 1).trim(),
-            Icons.volunteer_activism_outlined,
-          ),
-        ];
-      }
+    if (source.group == 'faith') {
+      final isCreed = source.id == 'p_creed' || source.id == 'p_nicene_creed';
+      return [
+        _ReaderPart(
+          source.sub.isNotEmpty ? source.sub : 'Prayer of faith',
+          body,
+          isCreed ? Icons.shield_outlined : Icons.volunteer_activism_outlined,
+          emphasized: true,
+        ),
+      ];
     }
 
     const rosaryMysteries = {
@@ -1350,32 +1333,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
     };
     return [
       _ReaderPart(label, body, _groupIcon(source), emphasized: true),
-    ];
-  }
-
-  List<_ReaderPart> _splitAtHeadings(
-    String body,
-    RegExp heading,
-    List<String> labels,
-    IconData icon,
-  ) {
-    final matches = heading.allMatches(body).toList();
-    if (matches.isEmpty) return [_ReaderPart('Prayer', body, icon)];
-    return [
-      for (var index = 0; index < matches.length; index++)
-        _ReaderPart(
-          index < labels.length ? labels[index] : 'Prayer part ${index + 1}',
-          body
-              .substring(
-                matches[index].start,
-                index + 1 < matches.length
-                    ? matches[index + 1].start
-                    : body.length,
-              )
-              .trim(),
-          icon,
-          emphasized: index == 0,
-        ),
     ];
   }
 

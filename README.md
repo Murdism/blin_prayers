@@ -9,14 +9,14 @@ navigation redesign.
 > Detailed project, architecture, content, development, and improvement
 > documentation lives in [`docs/`](docs/README.md).
 
-- 📖 **7 prayer collections** — daily prayers, the Creed & Acts, Confession &
+- 📖 **7 prayer collections** — daily prayers, Creeds & Acts, Confession &
   Communion, Marian Prayers with a grouped Rosary, the Divine Mercy Chaplet,
-  the Way of the Cross, and Grace at meals
+  the Stations of the Cross, and Grace at meals
 - ✝️ **Catechism** — 11 topics and 65 question-and-answer pairs, presented especially for children
 - 🎓 **Quiz mode** — shuffle-able flashcards, all topics or one at a time
 - 🎵 **12 newly supplied Blin hymns**, with more ready to be added over time
 - 🖼️ Devotional artwork with offline viewing and tap-to-zoom
-- ✨ Dedicated four-stage Divine Mercy and Way of the Cross journeys, structured
+- ✨ Dedicated four-stage Divine Mercy and Stations of the Cross journeys, structured
   prayer cards, Rosary mystery steps, and catechism Q&A panels
 - ⭐ Favorites, recent prayers, reading-position recovery, filtered full-text
   search, and four text-size presets
@@ -65,7 +65,7 @@ The current content sources include:
   Keren prayer and catechism book used to reconcile the corresponding app
   sections,
 - **ፊዅሰን መስቀሉ 2025** — the authoritative text-native Catholic Eparchy of
-  Keren booklet for the complete daily prayer, the Way of the Cross
+  Keren booklet for the complete daily prayer, the Stations of the Cross
   (preparation, fourteen stations, conclusion, and fifteen illustrations), and
   the Divine Mercy text;
 - **ጊመት ሰላምሪ 2025** — a one-page text-native source for the seven-stanza

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Import the reviewed Way of the Cross source into the runtime content.
+"""Import the reviewed Stations of the Cross source into the runtime content.
 
 The source is text-native. Text is extracted with pdftotext, running headers and
 page numbers are removed, the devotion is split into preparation, fourteen
@@ -138,7 +138,7 @@ def build_sections(pages: list[str]) -> list[dict[str, object]]:
             "title": BOOK_HEADER,
             "subtitle": "Preparation and Gospel · Source pages 7–9",
             "note": (
-                "Preparation for the Way of the Cross: the profession of faith, "
+                "Preparation for the Stations of the Cross: the profession of faith, "
                 "devotional acts, prayer before the altar, and Luke 23:1–17."
             ),
             "translation": "",
@@ -162,7 +162,7 @@ def build_sections(pages: list[str]) -> list[dict[str, object]]:
                 "id": f"way_station_{index:02d}",
                 "title": title,
                 "subtitle": f"Station {index} · {english}",
-                "note": f"Station {index} of the Way of the Cross: {english}.",
+                "note": f"Station {index} of the Stations of the Cross: {english}.",
                 "translation": "",
                 "body": body,
                 "visuals": [
@@ -184,7 +184,7 @@ def build_sections(pages: list[str]) -> list[dict[str, object]]:
             "title": conclusion_title,
             "subtitle": "Concluding prayer and Philippians 2:6–12",
             "note": (
-                "The Way of the Cross conclusion: a prayer, the reading from "
+                "The Stations of the Cross conclusion: a prayer, the reading from "
                 "Philippians 2:6–12, and a final prayer."
             ),
             "translation": "",
@@ -240,7 +240,7 @@ def main() -> None:
 
     way_group = next((group for group in data["groups"] if group["id"] == "way"), None)
     if way_group is None:
-        raise RuntimeError("Could not find the Way of the Cross group")
+        raise RuntimeError("Could not find the Stations of the Cross group")
     way_group["sections"] = build_sections(extract_pages(pdf))
 
     extract_images(pdf, repo / "assets" / "images" / "way_of_cross_2025")

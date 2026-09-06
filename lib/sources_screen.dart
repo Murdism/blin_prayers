@@ -44,7 +44,7 @@ class SourcesScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   const _SourceCard(
                     title: 'ፊዅሰን መስቀሉ',
-                    subtitle: 'Way of the Cross and Divine Mercy · 2025',
+                    subtitle: 'Stations of the Cross and Divine Mercy · 2025',
                     description:
                         'Source for the complete daily-prayer sequence, preparation, fourteen stations, conclusion, fifteen illustrations, and the complete Divine Mercy devotion.',
                   ),

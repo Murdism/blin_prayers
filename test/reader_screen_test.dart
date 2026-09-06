@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Shiwan/data.dart';
+import 'package:Shiwan/prayer_collection_screen.dart';
 import 'package:Shiwan/reader_screen.dart';
 import 'package:Shiwan/store.dart';
 import 'package:Shiwan/theme.dart';
+import 'package:Shiwan/widgets.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -67,18 +69,29 @@ void main() {
         data.byId('h_docx_2026_02')!.hymnCredits.single, 'ላሕማዲ ሒንዲ\nኤልያስ መስመር');
 
     final creed = data.byId('p_creed')!;
-    expect(creed.sub, 'The Apostles’ Creed & Act of Faith');
+    expect(creed.sub, 'The Apostles’ Creed');
     expect('${creed.sub} ${creed.note}'.contains('Nicene'), isFalse);
+    expect(creed.body, isNot(contains('\nሺዋን ኣማነቱዅ\n')));
     final niceneCreed = data.byId('p_nicene_creed')!;
     expect(niceneCreed.title, 'ሺዋን ኣማነቱዅ ኒቅዪዅ');
     expect(niceneCreed.sub, 'The Nicene Creed');
     expect(niceneCreed.body, startsWith('ዲባ፡'));
     expect(niceneCreed.body, endsWith('አሜን።'));
+    expect(niceneCreed.body.split('\n\n'), hasLength(5));
     final faithItems = data.itemsInGroup('faith');
     expect(
       faithItems.map((item) => item.id),
-      ['p_creed', 'p_nicene_creed', 'p_acts'],
+      [
+        'p_creed',
+        'p_nicene_creed',
+        'p_act_faith',
+        'p_acts',
+        'p_act_charity',
+        'p_act_contrition',
+      ],
     );
+    expect(data.byId('p_act_faith')!.title, 'ሺዋን ኣማነቱዅ');
+    expect(data.byId('p_acts')!.title, 'ሺዋን ሳዲዅ');
 
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.theme(dark: false),
@@ -91,7 +104,61 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('THE APOSTLES’ CREED'), findsOneWidget);
-    expect(find.text('ACT OF FAITH'), findsOneWidget);
+    expect(find.text('ACT OF FAITH'), findsNothing);
+  });
+
+  testWidgets('Nicene Creed uses one prayer card with source paragraphs',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final store = AppStore();
+    await store.init();
+    late AppData data;
+    await tester.runAsync(() async {
+      data = await AppData.load();
+    });
+
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.theme(dark: false),
+      home: ReaderScreen(
+        data: data,
+        store: store,
+        itemId: 'p_nicene_creed',
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PrayerText), findsOneWidget);
+    expect(find.textContaining('Prayer part'), findsNothing);
+  });
+
+  testWidgets('Faith collection lists Creeds and Acts as two groups',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final store = AppStore();
+    await store.init();
+    late AppData data;
+    await tester.runAsync(() async {
+      data = await AppData.load();
+    });
+
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.theme(dark: false),
+      home: PrayerCollectionScreen(
+        data: data,
+        store: store,
+        groupId: 'faith',
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Creeds'), findsOneWidget);
+    expect(find.text('Acts'), findsOneWidget);
+    expect(find.text('The Apostles’ Creed'), findsOneWidget);
+    expect(find.text('The Nicene Creed'), findsOneWidget);
+    expect(find.text('Act of Faith'), findsOneWidget);
+    expect(find.text('Act of Hope'), findsOneWidget);
+    expect(find.text('Act of Charity'), findsOneWidget);
+    expect(find.text('Act of Contrition'), findsOneWidget);
   });
 
   testWidgets('opening a subsection normally starts at the top',
@@ -120,7 +187,7 @@ void main() {
     expect(reader.controller?.offset, 0);
   });
 
-  testWidgets('Way navigation uses the reviewed Back and Next labels',
+  testWidgets('Stations navigation uses the reviewed Back and Next labels',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     final store = AppStore();
